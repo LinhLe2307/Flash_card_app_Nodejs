@@ -1,9 +1,23 @@
-// const express = require('express')
-// const usersControllers = require('../controllers/users-controllers')
+const express = require('express')
+const usersController = require('../controllers/users-controllers')
 
-// const router = express.Router()
+const router = express.Router()
 
-// router.get("/", usersControllers.getUsers)
-// router.post("/signup", usersControllers.signup)
-// router.post("/login", usersControllers.login)
-// module.exports = router
+router.get("/", usersController.getUsers)
+
+router.post(
+    '/signup',
+    [
+      check('name')
+        .not()
+        .isEmpty(),
+      check('email')
+        .normalizeEmail() // Test@test.com => test@test.com
+        .isEmail(),
+      check('password').isLength({ min: 6 })
+    ],
+    usersController.signup
+  );
+
+router.post("/login", usersController.login)
+module.exports = router
