@@ -6,7 +6,7 @@ const router = express.Router()
 
 router.get('/:cid', cardsController.getCardById)
 
-router.get('/user/:cid', cardsController.getCardsByUserId)
+router.get('/user/:uid', cardsController.getCardsByUserId)
 
 router.post(
     '/', [
