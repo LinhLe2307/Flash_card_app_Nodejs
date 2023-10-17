@@ -1,21 +1,8 @@
-// const uuid = require('uuid/v4');
 const HttpError = require('../models/http-error');
 const {validationResult} = require('express-validator')
 const Card = require('../models/card')
-
-let DUMMY_CARDS = [
-    {
-      id: 'c1',
-      title: 'Empire State Building',
-      description: 'One of the most famous sky scrapers in the world!',
-      one: {
-        term: 'kissa',
-        definition: 'new kissa',
-        image: 'https://images.unsplash.com/photo-1697128439428-a68faa7f2537?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=987&q=80'
-      },
-      creator: 'u1'
-    }
-  ];
+const User = require('../models/user');
+const { default: mongoose } = require('mongoose');
 
 const getCardById = async (req, res, next) => {
     const cardId = req.params.cid
@@ -37,26 +24,39 @@ const getCardById = async (req, res, next) => {
 const getCardsByUserId = async (req, res, next) => {
     const userId = req.params.uid 
 
-    let cards
+    let userWithCards
     try {
-      cards = await Card.find({creator: userId})
+      userWithCards = await User.findById(userId).populate('cards')
     } catch(err) {
-      const error = new HttpError('Something went wrong, could not find a card.', 500)
-      return next(error)
-    }
+        const error = new HttpError('Something went wrong, could not find a card.', 500)
+        return next(error)
+      }
 
-    if (!cards || cards.length === 0) {
+    // let cards
+    // try {
+    //   cards = await Card.find({creator: userId})
+    // } catch(err) {
+    //   const error = new HttpError('Something went wrong, could not find a card.', 500)
+    //   return next(error)
+    // }
+
+    // if (!cards || cards.length === 0) {
+    //   return next(
+    //     new HttpError('Could not find cards for the provided user id.', 404)
+    //   );
+    // } 
+
+    if (!userWithCards || userWithCards.length === 0) {
       return next(
         new HttpError('Could not find cards for the provided user id.', 404)
       );
     } 
-    res.json({ cards: cards.map(card => card.toObject({getters: true})) });
+    res.json({ cards: userWithCards.cards.map(card => card.toObject({getters: true})) });
 }
 
 const createCard = async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.log(errors)
       throw new HttpError('Invalid inputs passed, please check your data', 422)
     }
     const {title, description, creator, ...rest} = req.body
@@ -65,8 +65,32 @@ const createCard = async (req, res, next) => {
       title, description, creator, ...rest
     })
 
+    let user
     try {
-      await createdCard.save()
+      user = await User.findById(creator)
+    } catch(err) {
+      const error = new HttpError(
+        'Creating place failed, please try again',
+        500
+      )
+      return next(error)
+    }
+
+    if(!user){
+      const error= new HttpError('Could not find user for provideid id.', 404)
+      return next(error)
+    }
+
+    try {
+      const sess = await mongoose.startSession()
+      sess.startTransaction()   
+      await createdCard.save({session: sess}); // we store the place
+
+      // we make sure the card is added to user
+      user.cards.push(createdCard)
+      await user.save({ session: sess });
+      sess.commitTransaction()
+
     } catch(err) {
       const error = new HttpError('Creating card failed, please try again.', 500)
       next(error)
@@ -121,14 +145,25 @@ const deleteCard = async(req, res, next) => {
 
   let card
   try {
-    card = await Card.findById(cardId)
+    card = await Card.findById(cardId).populate('creator')
   } catch(err) {
     const error = new HttpError('Something went wrong, could not delete card', 500)
     return next(error)
   }
 
+    if(!card){
+      const error= new HttpError('Could not find card for provided id.', 404)
+      return next(error)
+    }
+
   try {
-    await card.deleteOne()
+    const sess = await mongoose.startSession()
+    sess.startTransaction()
+    await card.deleteOne({session: sess})
+
+    card.creator.cards.pull(card)
+    await card.creator.save({session: sess})
+    await sess.commitTransaction()
   } catch(err) {
     const error = new HttpError('Something went wrong, could not delete card', 500)
     return next(error)
