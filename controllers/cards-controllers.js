@@ -57,7 +57,7 @@ const getCardsByUserId = async (req, res, next) => {
 const createCard = async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      throw new HttpError('Invalid inputs passed, please check your data', 422)
+      next(new HttpError('Invalid inputs passed, please check your data', 422))
     }
     const {title, description, creator, ...rest} = req.body
     
@@ -115,21 +115,32 @@ const updateCard = async(req, res, next) => {
     ...rest
   }
 
-  let card = await Card.findByIdAndUpdate(
-    cardId,
-    {$set: data},
-    {
+  let card
+  try {
+    card = await Card.findByIdAndUpdate(cardId, {$set: data}, {
       new: true,
-    }, (err, updatedDoc) => {
-      if (err) {
-        next(new HttpError('Could not find a card for that id.', 404))
-        // Handle error
-      } else {
-        console.log(updatedDoc);
-        // updatedDoc will contain the updated fields, but other fields will remain unchanged
-      }
+    })
+    if (!card) {
+      next(new HttpError('Could not find a card for that id.', 404))
     }
-  )
+  } catch(err) {
+    next(new HttpError('Could not find a card for that id.', 404))
+  }
+  // let card = await Card.findByIdAndUpdate(
+  //   cardId,
+  //   {$set: data},
+  //   {
+  //     new: true,
+  //   }, (err, updatedDoc) => {
+  //     if (err) {
+  //       next(new HttpError('Could not find a card for that id.', 404))
+  //       // Handle error
+  //     } else {
+  //       console.log(updatedDoc);
+  //       // updatedDoc will contain the updated fields, but other fields will remain unchanged
+  //     }
+  //   }
+  // )
 
   try {
     await card.save()
