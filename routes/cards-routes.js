@@ -1,12 +1,15 @@
 const express = require('express')
 const {check} = require('express-validator')
 const cardsController = require('../controllers/cards-controllers')
+const checkAuth = require('../middleware/check-auth')
 
 const router = express.Router()
 
 router.get('/:cid', cardsController.getCardById)
 
 router.get('/user/:uid', cardsController.getCardsByUserId)
+
+router.use(checkAuth)
 
 router.post(
     '/', [
