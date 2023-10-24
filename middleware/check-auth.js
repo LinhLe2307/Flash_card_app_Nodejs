@@ -9,9 +9,8 @@ module.exports = (req, res, next) => {
     try {
         // We use headers since not every path has body
         const token = req.headers.authorization.split(' ')[1]; // Authorization: 'Bearer TOKEN'
-        console.log(req.headers)
         if (!token) {
-            const error = new HttpError('Authentication failed!', 401);
+            const error = new HttpError('Authentication failed!', 403);
             return next(error)
         }
         const decodedToken = jwt.verify(token, process.env.TOKEN_KEY)
@@ -19,7 +18,7 @@ module.exports = (req, res, next) => {
         next()
 
     } catch(err) {
-        const error = new HttpError('Authentication failed!', 401);
+        const error = new HttpError('Authentication failed!', 403);
         return next(error)
     }
 }

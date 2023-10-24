@@ -117,6 +117,18 @@ const updateCard = async(req, res, next) => {
 
   let card
   try {
+    card = await Card.findById(cardId)
+  } catch(err) {
+    const error = new HttpError('Could not find a card for that id.', 500)
+    return next(error) 
+  }
+
+  if (card.creator.toString() !== req.userData.userId) {
+    const error = new HttpError('You are not allowed to edit this card', 403)
+    return next(error) 
+  }
+
+  try {
     card = await Card.findByIdAndUpdate(cardId, {$set: data}, {
       new: true,
     })
@@ -162,10 +174,16 @@ const deleteCard = async(req, res, next) => {
     return next(error)
   }
 
-    if(!card){
+  if(!card){
       const error= new HttpError('Could not find card for provided id.', 404)
       return next(error)
-    }
+  }
+
+  if (card.creator._id !== req.userData.userId) {
+    const error = new HttpError('You are not allowed to delete this card', 403)
+    return next(error) 
+  }
+
 
   try {
     const sess = await mongoose.startSession()
