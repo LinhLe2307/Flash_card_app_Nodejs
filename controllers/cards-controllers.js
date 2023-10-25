@@ -62,12 +62,14 @@ const createCard = async (req, res, next) => {
     const {title, description, creator, ...rest} = req.body
     
     const createdCard = new Card({
-      title, description, creator, ...rest
+      title, description, 
+      creator: req.userData.userId,
+       ...rest
     })
 
     let user
     try {
-      user = await User.findById(creator)
+      user = await User.findById(req.userData.userId)
     } catch(err) {
       const error = new HttpError(
         'Creating place failed, please try again',
