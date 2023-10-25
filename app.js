@@ -16,7 +16,7 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*'); // it allows any domain to send requests
   // specify which headers these requests sent by the browser may have
    res.setHeader('Access-Control-Allow-Headers', 
-   'Access-Control-Allow-Headers, Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, Authorization');
+   'Access-Control-Allow-Headers, Origin, Accept, X-Requested-With, content-type, Access-Control-Request-Method, Access-Control-Request-Headers, Authorization');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE')
   next()
 })
