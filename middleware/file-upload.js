@@ -1,8 +1,8 @@
-const multer = require('multer')
-const uuid = require('uuid')
+const multer = require('multer');
+const { v4: uuid } = require('uuid');
 const MIME_TYPE_MAP = {
     'image/png': 'png',
-    'image/jpeg': ' jpeg',
+    'image/jpeg': 'jpeg',
     'image/jpg': 'jpg'
 }
 
