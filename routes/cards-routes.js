@@ -2,6 +2,7 @@ const express = require('express')
 const {check} = require('express-validator')
 const cardsController = require('../controllers/cards-controllers')
 const checkAuth = require('../middleware/check-auth')
+const fileUpload = require('../middleware/file-upload')
 
 const router = express.Router()
 
@@ -12,7 +13,8 @@ router.get('/user/:uid', cardsController.getCardsByUserId)
 router.use(checkAuth)
 
 router.post(
-    '/', [
+    '/',
+    [
     check('title')
         .not()
         .isEmpty(),
@@ -21,6 +23,7 @@ router.post(
     cardsController.createCard)
 
 router.patch('/:cid',
+    fileUpload.single('imageUrl'),
     [
         check('title')
         .not()

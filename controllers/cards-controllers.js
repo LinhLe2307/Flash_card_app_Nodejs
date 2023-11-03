@@ -57,7 +57,7 @@ const getCardsByUserId = async (req, res, next) => {
 const createCard = async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      next(new HttpError('Invalid inputs passed, please check your data', 422))
+      return next(new HttpError('Invalid inputs passed, please check your data', 422))
     }
     const {title, description, creator, ...rest} = req.body
     
@@ -79,7 +79,7 @@ const createCard = async (req, res, next) => {
     }
 
     if(!user){
-      const error= new HttpError('Could not find user for provideid id.', 404)
+      const error= new HttpError('Could not find user for provided id.', 404)
       return next(error)
     }
 
@@ -95,7 +95,7 @@ const createCard = async (req, res, next) => {
 
     } catch(err) {
       const error = new HttpError('Creating card failed, please try again.', 500)
-      next(error)
+      return next(error)
     }
 
     res.status(201).json({ card: createdCard.toObject({getters: true}) })
@@ -105,7 +105,7 @@ const updateCard = async(req, res, next) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    next(new HttpError('Invalid inputs passed, please check your data', 422))
+    return next(new HttpError('Invalid inputs passed, please check your data', 422))
   }
 
   const cardId = req.params.cid
@@ -135,10 +135,10 @@ const updateCard = async(req, res, next) => {
       new: true,
     })
     if (!card) {
-      next(new HttpError('Could not find a card for that id.', 404))
+      return next(new HttpError('Could not find a card for that id.', 404))
     }
   } catch(err) {
-    next(new HttpError('Could not find a card for that id.', 404))
+    return next(new HttpError('Could not find a card for that id.', 404))
   }
   // let card = await Card.findByIdAndUpdate(
   //   cardId,
@@ -181,11 +181,10 @@ const deleteCard = async(req, res, next) => {
       return next(error)
   }
 
-  if (card.creator._id !== req.userData.userId) {
+  if (card.creator.id !== req.userData.userId) {
     const error = new HttpError('You are not allowed to delete this card', 403)
     return next(error) 
   }
-
 
   try {
     const sess = await mongoose.startSession()
