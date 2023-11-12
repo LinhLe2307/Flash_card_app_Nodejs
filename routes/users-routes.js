@@ -6,12 +6,22 @@ const fileUpload = require('../middleware/file-upload')
 const router = express.Router()
 
 router.get("/", usersController.getUsers)
+router.get("/:uid", usersController.getSingleUser)
 
 router.post(
     '/signup',
     fileUpload.single('image'),
     [
-      check('name')
+      check('firstName')
+        .not()
+        .isEmpty(),
+      check('lastName')
+        .not()
+        .isEmpty(),
+      check('country')
+        .not()
+        .isEmpty(),
+      check('language')
         .not()
         .isEmpty(),
       check('email')

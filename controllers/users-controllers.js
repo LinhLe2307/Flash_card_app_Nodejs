@@ -22,13 +22,34 @@ const getUsers = async(req, res, next) => {
     })
 }
 
+const getSingleUser = async(req, res, next) => {
+  const userId = req.params.uid
+  let user
+  try {
+    user = await User.findById(userId, '-password')
+  } catch(err) {
+      const error = new HttpError(
+          'Fetching user failed, please try again later'
+      )
+      return next(error)
+  }
+
+  if (!user) {
+    return next(new HttpError('Could not find a user for the provided id.', 404))
+  }
+
+  res.json({
+      user: user.toObject({getters: true})
+  })
+}
+
 const signup = async(req, res, next) => {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
         const error = new HttpError('Invalid inputs passed, please check your data', 422)
         return next(error)
     }
-    const {name, email, password} = req.body
+    const {firstName, lastName, phone, country, language, email, password} = req.body
 
     let existingUser
     try {
@@ -55,7 +76,8 @@ const signup = async(req, res, next) => {
     }
 
     const createdUser = new User({
-        name, email, 
+        firstName, lastName, 
+        phone, country, language, email,
         password: hashedPassword,
         image: req.file.path,
         cards:[]
@@ -150,3 +172,4 @@ const login = async (req, res, next) => {
 exports.getUsers = getUsers
 exports.signup = signup
 exports.login = login
+exports.getSingleUser = getSingleUser
