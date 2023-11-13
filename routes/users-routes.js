@@ -1,12 +1,12 @@
 const express = require('express')
 const {check} = require('express-validator')
 const usersController = require('../controllers/users-controllers')
+const checkAuth = require('../middleware/check-auth')
 const fileUpload = require('../middleware/file-upload')
 
 const router = express.Router()
 
 router.get("/", usersController.getUsers)
-router.get("/:uid", usersController.getSingleUser)
 
 router.post(
     '/signup',
@@ -33,4 +33,28 @@ router.post(
   );
 
 router.post("/login", usersController.login)
+
+router.get("/:uid", usersController.getSingleUser)
+router.use(checkAuth)
+router.patch("/:uid", 
+  fileUpload.single('image'),
+  [
+    check('firstName')
+      .not()
+      .isEmpty(),
+    check('lastName')
+      .not()
+      .isEmpty(),
+    check('country')
+      .not()
+      .isEmpty(),
+    check('language')
+      .not()
+      .isEmpty()
+  ],
+  usersController.updateUser
+)
+
+router.delete("/:uid", usersController.deleteUser)
+
 module.exports = router

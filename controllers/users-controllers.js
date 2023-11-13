@@ -2,7 +2,10 @@ const HttpError = require('../models/http-error');
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
-const User = require('../models/user')
+const User = require('../models/user');
+const Card = require('../models/card');
+const { default: mongoose } = require('mongoose');
+const { use } = require('../routes/users-routes');
 
 require('dotenv').config()
   
@@ -41,6 +44,81 @@ const getSingleUser = async(req, res, next) => {
   res.json({
       user: user.toObject({getters: true})
   })
+}
+
+const updateUser = async(req, res, next) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return next(new HttpError('Invalid inputs passed, please check your data', 422))
+  }
+
+  const userId = req.userData.userId
+
+  const {firstName, lastName, phone, country, language} = req.body
+  const data = {
+    firstName, lastName, phone, country, language
+  }
+  let user 
+
+  try {
+    user = await User.findByIdAndUpdate(userId, {$set: data},
+      {
+        new: true,
+      })
+  } catch(err) {
+    const error = new HttpError(
+      'Fetching users failed, please try again later'
+    )
+    return next(error)
+  }
+
+  if (!user) {
+    return next(new HttpError('Could not find a user for the provided id.', 404))
+  }
+  try {
+    await user.save()
+  } catch(err) {
+    console.log(err)
+    const error = new HttpError('Something went wrong, could not update user', 500)
+    return next(error)
+  }
+  res.status(201).json({ user: user.toObject({getters: true}) })
+}
+
+const deleteUser = async(req, res, next) => {
+  const userId = req.userData.userId
+  let user
+  try {
+    user = await User.findById(userId).populate('cards')
+  } catch(err) {
+    const error = new HttpError(
+      'Fetching users failed, please try again later'
+    )
+    return next(error)
+  }
+
+  if(!user){
+    const error= new HttpError('Could not find user for provided id.', 404)
+    return next(error)
+  }
+
+  try {
+    const sess = await mongoose.startSession()
+    sess.startTransaction()
+
+    await mongoose.model('Card').deleteMany({ creator: userId })
+    await user.deleteOne({session: sess})
+
+    await sess.commitTransaction()
+
+  } catch(err){
+    console.log(err)
+    const error = new HttpError('Something went wrong, could not delete user', 500)
+    return next(error)
+  }
+  console.log("user", user)
+  res.status(200).json({message: 'Deleted user'})
 }
 
 const signup = async(req, res, next) => {
@@ -173,3 +251,5 @@ exports.getUsers = getUsers
 exports.signup = signup
 exports.login = login
 exports.getSingleUser = getSingleUser
+exports.updateUser = updateUser
+exports.deleteUser = deleteUser
