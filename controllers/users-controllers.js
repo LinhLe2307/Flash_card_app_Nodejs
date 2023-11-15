@@ -57,10 +57,10 @@ const updateUser = async(req, res, next) => {
 
   const {firstName, lastName, phone, country, language} = req.body
   const data = {
-    firstName, lastName, phone, country, language
+    firstName, lastName, phone, country, language, image: req.file.path
   }
+  
   let user 
-
   try {
     user = await User.findByIdAndUpdate(userId, {$set: data},
       {

@@ -23,7 +23,6 @@ router.post(
     cardsController.createCard)
 
 router.patch('/:cid',
-    fileUpload.single('imageUrl'),
     [
         check('title')
         .not()
