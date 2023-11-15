@@ -3,9 +3,8 @@ const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const User = require('../models/user');
-const Card = require('../models/card');
 const { default: mongoose } = require('mongoose');
-const { use } = require('../routes/users-routes');
+const fs = require('fs')
 
 require('dotenv').config()
   
@@ -59,8 +58,24 @@ const updateUser = async(req, res, next) => {
   const data = {
     firstName, lastName, phone, country, language, image: req.file.path
   }
-  
+
   let user 
+  
+  try {
+    user = await User.findById(userId)
+  } catch(err) {
+    const error = new HttpError(
+      'Fetching users failed, please try again later'
+    )
+    return next(error)
+  }
+
+  if (user.image !== req.file.path) {
+    fs.unlink(user.image, (err) => {
+      console.log(err)
+    })
+  }
+ 
   try {
     user = await User.findByIdAndUpdate(userId, {$set: data},
       {
