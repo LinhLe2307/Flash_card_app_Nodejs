@@ -114,6 +114,7 @@ const updateCard = async(req, res, next) => {
   const data = {
     title: title,
     description: description,
+    creator: req.userData.userId,
     ...rest
   }
 
@@ -124,18 +125,18 @@ const updateCard = async(req, res, next) => {
     const error = new HttpError('Could not find a card for that id.', 500)
     return next(error) 
   }
-
+  
   if (card.creator.toString() !== req.userData.userId) {
     const error = new HttpError('You are not allowed to edit this card', 403)
     return next(error) 
   }
 
   try {
-    card = await Card.findByIdAndUpdate(cardId, {$set: data}, {
-      new: true,
+    card = await Card.findOneAndReplace({_id: cardId}, data, {
+      new: true
     })
     if (!card) {
-      return next(new HttpError('Could not find a card for that id.', 404))
+      return next(new HttpError('Card not found', 404))
     }
   } catch(err) {
     return next(new HttpError('Could not find a card for that id.', 404))
@@ -156,12 +157,12 @@ const updateCard = async(req, res, next) => {
   //   }
   // )
 
-  try {
-    await card.save()
-  } catch(err) {
-    const error = new HttpError('Something went wrong, could not update card', 500)
-    return next(error)
-  }
+  // try {
+  //   await card.save()
+  // } catch(err) {
+  //   const error = new HttpError('Something went wrong, could not update card', 500)
+  //   return next(error)
+  // }
   res.status(201).json({ card: card.toObject({getters: true}) })
 }
 
