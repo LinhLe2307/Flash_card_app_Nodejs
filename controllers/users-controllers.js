@@ -55,26 +55,33 @@ const updateUser = async(req, res, next) => {
   const userId = req.userData.userId
 
   const {firstName, lastName, phone, country, language} = req.body
-  const data = {
-    firstName, lastName, phone, country, language, image: req.file.path
-  }
-
+  
   let user 
+  let imageUrl
   
   try {
     user = await User.findById(userId)
   } catch(err) {
     const error = new HttpError(
       'Fetching users failed, please try again later'
-    )
-    return next(error)
-  }
+      )
+      return next(error)
+    }
 
-  if (user.image !== req.file.path) {
-    fs.unlink(user.image, (err) => {
-      console.log(err)
-    })
-  }
+    if (req.file) {
+      imageUrl = req.file.path
+      if (user.image !== req.file.path) {
+        fs.unlink(user.image, (err) => {
+          console.log(err)
+        })
+      }
+    } else {
+      imageUrl = user.image
+    }
+
+    const data = {
+      firstName, lastName, phone, country, language, image: imageUrl
+    }
  
   try {
     user = await User.findByIdAndUpdate(userId, {$set: data},
@@ -132,7 +139,7 @@ const deleteUser = async(req, res, next) => {
     const error = new HttpError('Something went wrong, could not delete user', 500)
     return next(error)
   }
-  console.log("user", user)
+  
   res.status(200).json({message: 'Deleted user'})
 }
 
