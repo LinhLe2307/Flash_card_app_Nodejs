@@ -9,3 +9,7 @@ This is a back-end flashcard using Nodejs with front-end technologies using Type
 - TypeScript
 - Nodejs
 - Unsplash API
+
+### How to run
+- Run `npm install`
+- Run `npm start` to start the server
