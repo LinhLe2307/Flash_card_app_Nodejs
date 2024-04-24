@@ -1,5 +1,3 @@
-const fs = require('fs');
-const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
@@ -14,8 +12,6 @@ const app = express();
 app.use(bodyParser.json());
 
 app.options('*', cors());
-
-app.use('/uploads/images', express.static(path.join('uploads', 'images')));
 
 // add CORS middleware
 app.use((req, res, next) => {
@@ -37,11 +33,6 @@ app.use((req, res, next) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   res.locals.error = err;
-  if (req.file) {
-    fs.unlink(req.file.path, (err) => {
-      console.log(err);
-    });
-  }
   if (res.headerSent) {
     return next(err);
   }
