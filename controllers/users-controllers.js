@@ -6,9 +6,10 @@ const jwt = require('jsonwebtoken')
 const User = require('../models/user');
 const { default: mongoose } = require('mongoose');
 const fs = require('fs')
+const { deleteS3 } = require('../middleware/s3Service');
 
 require('dotenv').config()
-  
+
 const getUsers = async(req, res, next) => {
     let users
     try {
@@ -58,7 +59,6 @@ const updateUser = async(req, res, next) => {
   const {firstName, lastName, phone, country, language} = req.body
   
   let user 
-  let imageUrl
   
   try {
     user = await User.findById(userId)
@@ -67,22 +67,24 @@ const updateUser = async(req, res, next) => {
       'Fetching users failed, please try again later'
       )
       return next(error)
-    }
+  }
 
-    if (req.file) {
-      imageUrl = req.file.path
-      if (user.image !== req.file.path) {
-        fs.unlink(user.image, (err) => {
-          console.log(err)
-        })
-      }
-    } else {
-      imageUrl = user.image
-    }
+  if (!user.image) {
+    const error= new HttpError('Could not find image path for provided id.', 404)
+    return next(error)
+  }
+  
+    // Delete existing image, then upload a new one
+  try {
+    await deleteS3(user.image);
+  } catch(err) {
+    const error = new HttpError('Something went wrong, could not update image', 500)
+    return next(error)
+  }
 
-    const data = {
-      firstName, lastName, phone, country, language, image: imageUrl
-    }
+  const data = {
+    firstName, lastName, phone, country, language, image: req.imagePath
+  }
  
   try {
     user = await User.findByIdAndUpdate(userId, {$set: data},
@@ -99,10 +101,11 @@ const updateUser = async(req, res, next) => {
   if (!user) {
     return next(new HttpError('Could not find a user for the provided id.', 404))
   }
+
+
   try {
     await user.save()
   } catch(err) {
-    console.log(err)
     const error = new HttpError('Something went wrong, could not update user', 500)
     return next(error)
   }
@@ -126,6 +129,19 @@ const deleteUser = async(req, res, next) => {
     return next(error)
   }
 
+  if (!user.image) {
+    const error= new HttpError('Could not find image path for provided id.', 404)
+    return next(error)
+  }
+
+  // Delete existing image
+  try {
+    await deleteS3(user.image);
+  } catch(err) {
+    const error = new HttpError('Something went wrong, could not delete image', 500)
+    return next(error)
+  }
+
   try {
     const sess = await mongoose.startSession()
     sess.startTransaction()
@@ -136,7 +152,6 @@ const deleteUser = async(req, res, next) => {
     await sess.commitTransaction()
 
   } catch(err){
-    console.log(err)
     const error = new HttpError('Something went wrong, could not delete user', 500)
     return next(error)
   }
@@ -180,7 +195,7 @@ const signup = async(req, res, next) => {
         firstName, lastName, 
         phone, country, language, email,
         password: hashedPassword,
-        image: req.file.path,
+        image: req.imagePath,
         cards:[]
     })
 
