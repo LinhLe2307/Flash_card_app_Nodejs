@@ -18,8 +18,10 @@ const uploadS3 = async(file) => {
 exports.s3Uploadv2 = async(req, res, next) => {
     try {
         const file = req.file;
-        const result = await uploadS3(file);
-        req.imagePath = result.Location;
+        if(file && file.originalname) {
+            const result = await uploadS3(file);
+            req.imagePath = result.Location;
+        }
         next();
     } catch (err) {
         next(err);
