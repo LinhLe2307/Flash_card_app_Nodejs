@@ -73,17 +73,21 @@ const updateUser = async(req, res, next) => {
     const error= new HttpError('Could not find image path for provided id.', 404)
     return next(error)
   }
-  
-    // Delete existing image, then upload a new one
-  try {
-    await deleteS3(user.image);
-  } catch(err) {
-    const error = new HttpError('Something went wrong, could not update image', 500)
-    return next(error)
+
+  let image = user.image;
+  if (req.imagePath) {
+      // Delete existing image, then upload a new one
+    try {
+      await deleteS3(user.image);
+      image = await req.imagePath
+    } catch(err) {
+      const error = new HttpError('Something went wrong, could not update image', 500)
+      return next(error)
+    }
   }
 
   const data = {
-    firstName, lastName, phone, country, language, image: req.imagePath
+    firstName, lastName, phone, country, language, image: image
   }
  
   try {

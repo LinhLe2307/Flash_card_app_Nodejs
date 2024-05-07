@@ -9,6 +9,7 @@ const cardsRoutes = require('./routes/cards-routes');
 const usersRoutes = require('./routes/users-routes');
 
 const app = express();
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.options('*', cors());
