@@ -59,10 +59,10 @@ const createCard = async (req, res, next) => {
     if (!errors.isEmpty()) {
       return next(new HttpError('Invalid inputs passed, please check your data', 422))
     }
-    const {title, description, creator, ...rest} = req.body
+    const {title, description, tags, creator, ...rest} = req.body
     
     const createdCard = new Card({
-      title, description, 
+      title, description, tags,
       creator: req.userData.userId,
        ...rest
     })
@@ -109,11 +109,12 @@ const updateCard = async(req, res, next) => {
   }
 
   const cardId = req.params.cid
-  const {title, description, ...rest} = req.body
+  const {title, description, tags, ...rest} = req.body
 
   const data = {
-    title: title,
-    description: description,
+    title,
+    description,
+    tags,
     creator: req.userData.userId,
     ...rest
   }
