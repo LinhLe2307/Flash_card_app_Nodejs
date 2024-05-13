@@ -16,7 +16,6 @@ const createTags = async (tags, tagIds) => {
       if (!tag) {
         tag = new Tag({ name: tagName.toLowerCase(), cards: [] });
       }
-
       tagIds.push(tag)
     }
   } catch(err) {
@@ -183,7 +182,7 @@ const updateCard = async(req, res, next) => {
 
   // create if tag is not existed
   await createTags(tags, tagIds)
-  
+
   // update Tags
   try {
     await Tag.updateMany(
@@ -194,6 +193,7 @@ const updateCard = async(req, res, next) => {
     const error = new HttpError('Error removing cards from tag.', 403)
     return next(error) 
   }
+
   
   // find Card and remove tags in Card
   try {
@@ -220,17 +220,18 @@ const updateCard = async(req, res, next) => {
     let tagsToAdd = tagIds.filter(tagId => !card.tags.find(cardTag => cardTag._id.toString() === tagId._id.toString()))
     const sess = await mongoose.startSession()
     sess.startTransaction()
-
+    
     // Save all tags and associate each tag with the created card
     await Promise.all(tagsToAdd.map(async (singleTag) => {
       singleTag.cards.push(cardId); // Associate card with tag
       card.tags.push(singleTag._id); // Associate tag with card
       await singleTag.save({ session: sess });
     }));
-      // Save the created card
+    // Save the created card
     await card.save({ session: sess });
-
+    
     await sess.commitTransaction()
+      
   } catch(err) {
     const error = new HttpError('Updating card failed, please try again.', 500)
     return next(error)
