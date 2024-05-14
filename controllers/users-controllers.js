@@ -189,7 +189,7 @@ const signup = async(req, res, next) => {
         hashedPassword = await bcrypt.hash(password, 12)
     } catch(err) {
         const error = new HttpError(
-            'Could not create user, please try again',
+            'Password invalid, please try again',
             500
         )
         return next(error)

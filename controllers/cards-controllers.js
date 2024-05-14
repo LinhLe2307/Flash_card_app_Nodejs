@@ -247,7 +247,7 @@ const deleteCard = async(req, res, next) => {
   try {
     card = await Card.findById(cardId).populate('creator').populate('tags')
   } catch(err) {
-    const error = new HttpError('Something went wrong, could not delete card', 500)
+    const error = new HttpError('Could not find card for provided id.', 500)
     return next(error)
   }
 
