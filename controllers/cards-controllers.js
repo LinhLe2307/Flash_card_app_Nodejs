@@ -43,7 +43,7 @@ const getCardById = async (req, res, next) => {
     }
 
     // Extract tag names from the populated tags array
-    const tagNames = card.tags.map(tag => tag.name);
+    const tagNames = card.tags && card.tags.map(tag => tag.name);
     // Create a new object with tag names instead of tag objects
     const plainCard = {
       ...card.toObject({ getters: true }),
@@ -83,7 +83,7 @@ const getCardsByUserId = async (req, res, next) => {
       // Convert Mongoose document to plain JavaScript object if necessary
       const plainCard = (card instanceof mongoose.Document) ? card.toObject({ getters: true }) : card;
       // Map over the tags array and extract only the names
-      const tagNames = card.tags.map(tag => tag.name);
+      const tagNames = card.tags && card.tags.map(tag => tag.name);
       // Return the card object with the tags field replaced with tag names
       return { ...plainCard, tags: tagNames }
     }
@@ -247,7 +247,7 @@ const deleteCard = async(req, res, next) => {
   try {
     card = await Card.findById(cardId).populate('creator').populate('tags')
   } catch(err) {
-    const error = new HttpError('Something went wrong, could not delete card', 500)
+    const error = new HttpError('Could not find card for provided id.', 500)
     return next(error)
   }
 
