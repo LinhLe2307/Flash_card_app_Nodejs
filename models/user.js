@@ -13,6 +13,11 @@ const userSchema = new Schema({
     password: { type: String, required: true, minLength: 6 },
     image: { type: String, required: true },
     aboutMe: { type: String },
+    x: { type: String },
+    linkedIn: { type: String },
+    instagram: { type: String },
+    github: { type: String },
+    website: { type: String },
     cards: [{ type: mongoose.Types.ObjectId, required: true, ref: 'Card'  }]
 })
 userSchema.plugin(uniqueValidator)
