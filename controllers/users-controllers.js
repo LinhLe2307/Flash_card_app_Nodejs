@@ -56,7 +56,7 @@ const updateUser = async(req, res, next) => {
 
   const userId = req.userData.userId
 
-  const {firstName, lastName, phone, country, language} = req.body
+  const {firstName, lastName, phone, country, language, aboutMe} = req.body
   
   let user 
   
@@ -87,7 +87,7 @@ const updateUser = async(req, res, next) => {
   }
 
   const data = {
-    firstName, lastName, phone, country, language, image: image
+    firstName, lastName, phone, country, language, image: image, aboutMe
   }
  
   try {
@@ -169,7 +169,7 @@ const signup = async(req, res, next) => {
         const error = new HttpError('Invalid inputs passed, please check your data', 422)
         return next(error)
     }
-    const {firstName, lastName, phone, country, language, email, password} = req.body
+    const {firstName, lastName, phone, country, language, email, password, aboutMe} = req.body
 
     let existingUser
     try {
@@ -197,7 +197,7 @@ const signup = async(req, res, next) => {
 
     const createdUser = new User({
         firstName, lastName, 
-        phone, country, language, email,
+        phone, country, language, email, aboutMe,
         password: hashedPassword,
         image: req.imagePath,
         cards:[]
