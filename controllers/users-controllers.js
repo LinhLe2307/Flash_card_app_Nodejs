@@ -56,7 +56,18 @@ const updateUser = async(req, res, next) => {
 
   const userId = req.userData.userId
 
-  const {firstName, lastName, phone, country, language} = req.body
+  const {firstName, 
+    lastName, 
+    phone, 
+    country, 
+    language, 
+    aboutMe,
+    x,
+    linkedIn,
+    instagram,
+    github,
+    website
+  } = req.body
   
   let user 
   
@@ -87,7 +98,18 @@ const updateUser = async(req, res, next) => {
   }
 
   const data = {
-    firstName, lastName, phone, country, language, image: image
+    firstName, 
+    lastName, 
+    phone, 
+    country, 
+    language, 
+    image: image, 
+    aboutMe,
+    x,
+    linkedIn,
+    instagram,
+    github,
+    website
   }
  
   try {
@@ -164,12 +186,25 @@ const deleteUser = async(req, res, next) => {
 }
 
 const signup = async(req, res, next) => {
-    const errors = validationResult(req)
+    const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const error = new HttpError('Invalid inputs passed, please check your data', 422)
         return next(error)
     }
-    const {firstName, lastName, phone, country, language, email, password} = req.body
+    const { firstName, 
+      lastName, 
+      phone, 
+      country, 
+      language, 
+      email, 
+      password, 
+      aboutMe,
+      x,
+      linkedIn,
+      instagram,
+      github,
+      website
+    } = req.body
 
     let existingUser
     try {
@@ -196,8 +231,10 @@ const signup = async(req, res, next) => {
     }
 
     const createdUser = new User({
-        firstName, lastName, 
-        phone, country, language, email,
+        firstName, 
+        lastName, 
+        phone, country, language, email, aboutMe,
+        x, linkedIn, instagram, github, website,
         password: hashedPassword,
         image: req.imagePath,
         cards:[]
