@@ -33,7 +33,10 @@ const getCardById = async (req, res, next) => {
 
     let card 
     try {
-      card = await Card.findById(cardId).populate('tags')
+      card = await Card.findById(cardId).populate('tags').populate({
+        path: 'creator',
+        select: ['firstName', 'lastName', 'email', 'image']
+      })
     } catch(err) {
       const error = new HttpError('Something went wrong, could not find a card.', 500)
       return next(error)
