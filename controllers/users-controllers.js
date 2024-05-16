@@ -30,7 +30,13 @@ const getSingleUser = async(req, res, next) => {
   const userId = req.params.uid
   let user
   try {
-    user = await User.findById(userId, '-password')
+    user = await User.findById(userId, '-password').populate({
+      path: 'cards',
+      populate: {
+        path: 'tags',
+        select: 'name'
+      }
+    })
   } catch(err) {
       const error = new HttpError(
           'Fetching user failed, please try again later'
@@ -42,8 +48,18 @@ const getSingleUser = async(req, res, next) => {
     return next(new HttpError('Could not find a user for the provided id.', 404))
   }
 
+  const plainUser = {
+    ...user.toObject({getters: true}),
+    cards: user.cards.map(card => {
+      return ({
+      ...card.toObject({getters: true}),
+      tags: card.tags.map(tag => tag.name)
+      })}
+    )
+  }
+
   res.json({
-      user: user.toObject({getters: true})
+      user: plainUser
   })
 }
 
