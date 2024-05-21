@@ -13,17 +13,24 @@ require('dotenv').config()
 const getUsers = async(req, res, next) => {
     let users
     try {
-        users = await User.find({}, '-password')
+        users = await User.find({}, '-password').populate({
+          path: 'cards',
+          populate: {
+            path: 'tags'
+          }
+        })
     } catch(err) {
         const error = new HttpError(
             'Fetching users failed, please try again later'
         )
         return next(error)
     }
+
+    return users
     // const users = User.find({}, '--password')
-    res.json({
-        users: users.map(user => user.toObject({getters: true}))
-    })
+    // res.json({
+    //     users: users.map(user => user.toObject({getters: true}))
+    // })
 }
 
 const getSingleUser = async(req, res, next) => {
