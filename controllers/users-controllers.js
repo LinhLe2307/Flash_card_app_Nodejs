@@ -10,20 +10,19 @@ const { deleteS3 } = require('../middleware/s3Service');
 
 require('dotenv').config()
 
-const getUsers = async(req, res, next) => {
+const getUsers = async(searchInput) => {
     let users
     try {
-        users = await User.find({}, '-password').populate({
+        users = await User.find({firstName: searchInput}, '-password').populate({
           path: 'cards',
           populate: {
             path: 'tags'
           }
         })
     } catch(err) {
-        const error = new HttpError(
+        throw new HttpError(
             'Fetching users failed, please try again later'
         )
-        return next(error)
     }
 
     return users
@@ -33,8 +32,7 @@ const getUsers = async(req, res, next) => {
     // })
 }
 
-const getSingleUser = async(req, res, next) => {
-  const userId = req.params.uid
+const getSingleUser = async(userId) => {
   let user
   try {
     user = await User.findById(userId, '-password').populate({
@@ -45,29 +43,16 @@ const getSingleUser = async(req, res, next) => {
       }
     })
   } catch(err) {
-      const error = new HttpError(
+      throw new HttpError(
           'Fetching user failed, please try again later'
       )
-      return next(error)
   }
 
   if (!user) {
-    return next(new HttpError('Could not find a user for the provided id.', 404))
+    throw new HttpError('Could not find a user for the provided id.', 404)
   }
 
-  const plainUser = {
-    ...user.toObject({getters: true}),
-    cards: user.cards.map(card => {
-      return ({
-      ...card.toObject({getters: true}),
-      tags: card.tags.map(tag => tag.name)
-      })}
-    )
-  }
-
-  res.json({
-      user: plainUser
-  })
+  return user
 }
 
 const updateUser = async(req, res, next) => {
@@ -285,46 +270,41 @@ const signup = async(req, res, next) => {
 
 }
 
-const login = async (req, res, next) => {
-    const { email, password } = req.body;
+const login = async (email, password) => {
   
     let existingUser;
 
     try {
       existingUser = await User.findOne({ email: email });
     } catch (err) {
-      const error = new HttpError(
+      throw new HttpError(
         'Logging in failed, please try again later.',
         500
       );
-      return next(error);
     }
   
     if (!existingUser) {
-      const error = new HttpError(
+      throw new HttpError(
         'Invalid users, could not log you in.',
         401
       );
-      return next(error);
     }
   
     let isValidPassword = false;
     try {
       isValidPassword = await bcrypt.compare(password, existingUser.password);
     } catch (err) {
-      const error = new HttpError(
+      throw new HttpError(
         'Could not log you in, please check your credentials and try again.',
         500
       );
-      return next(error);
     }
   
     if (!isValidPassword) {
-      const error = new HttpError(
+      throw new HttpError(
         'Invalid credentials, could not log you in.',
         401
       );
-      return next(error);
     }
   
     let token;
@@ -335,14 +315,13 @@ const login = async (req, res, next) => {
         { expiresIn: '1h' }
       );
     } catch (err) {
-      const error = new HttpError(
+      throw new HttpError(
         'Logging in failed, please try again later.',
         500
       );
-      return next(error);
     }
   
-    res.json({
+    return({
       userId: existingUser.id,
       email: existingUser.email,
       token: token
