@@ -1,5 +1,4 @@
 const HttpError = require('../models/http-error');
-const {validationResult} = require('express-validator')
 const Card = require('../models/card')
 const User = require('../models/user');
 const Tag = require('../models/tag');
@@ -19,18 +18,15 @@ const createTags = async (tags, tagIds) => {
       tagIds.push(tag)
     }
   } catch(err) {
-    const error = new HttpError(
+    throw new HttpError(
       'Cannot find and create new tag , please try again',
       500
     )
-    return next(error)
   }
   return tagIds
 }
 
-const getCardById = async (req, res, next) => {
-    const cardId = req.params.cid
-
+const getCardById = async (cardId) => {
     let card 
     try {
       card = await Card.findById(cardId).populate('tags').populate({
@@ -38,90 +34,64 @@ const getCardById = async (req, res, next) => {
         select: ['firstName', 'lastName', 'email', 'image']
       })
     } catch(err) {
-      const error = new HttpError('Something went wrong, could not find a card.', 500)
-      return next(error)
+      throw new HttpError('Something went wrong, could not find a card.', 500)
     }
     if (!card) {
-      return next(new HttpError('Could not find a card for the provided id.', 404))
+       throw (new HttpError('Could not find a card for the provided id.', 404))
     }
 
-    // Extract tag names from the populated tags array
-    const tagNames = card.tags && card.tags.map(tag => tag.name);
-    // Create a new object with tag names instead of tag objects
-    const plainCard = {
-      ...card.toObject({ getters: true }),
-      tags: tagNames
-    };
     try {
-      res.json({card: plainCard})
+      return card.toJSON()
     } catch(err) {
-      const error = new HttpError('Internal server error.', 500)
-      return next(error)
+      throw new HttpError('Internal server error.', 500)
     }
 }
 
-const getCardsByUserId = async (req, res, next) => {
-    const userId = req.params.uid 
-
+const getCardsByUserId = async (userId) => {
     let userWithCards
     try {
       userWithCards = await User.findById(userId).populate({
         path: 'cards',
-        populate: {
-          path: 'tags',
-          select: 'name' // Optionally, specify fields to include from the populated documents
-        }
+        populate:[ {
+          path: 'tags'
+        }, {
+          path: 'creator'
+        }]
       });
     } catch(err) {
-        const error = new HttpError('Something went wrong, could not find a card.', 500)
-        return next(error)
+        throw new HttpError('Something went wrong, could not find a card.', 500)
       }
 
     if (!userWithCards || userWithCards.length === 0) {
-      return next(
-        new HttpError('Could not find cards for the provided user id.', 404)
-      );
+      throw new HttpError('Could not find cards for the provided user id.', 404)
     } 
-    res.json({ cards: userWithCards.cards.map(card => {
-      // Convert Mongoose document to plain JavaScript object if necessary
-      const plainCard = (card instanceof mongoose.Document) ? card.toObject({ getters: true }) : card;
-      // Map over the tags array and extract only the names
-      const tagNames = card.tags && card.tags.map(tag => tag.name);
-      // Return the card object with the tags field replaced with tag names
-      return { ...plainCard, tags: tagNames }
-    }
-    )});
+
+    return userWithCards
 }
 
-const createCard = async (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return next(new HttpError('Invalid inputs passed, please check your data', 422))
-    }
-    const {title, description, tags, creator, ...rest} = req.body
+const createCard = async (args) => {
+    const {userId, title, description, tags, creator, ...rest} = args
     const tagIds = [];
 
     const createdCard = new Card({
       title, description, 
       tags: [],
-      creator: req.userData.userId,
+      creator: userId,
        ...rest
     })
 
     let user
     try {
-      user = await User.findById(req.userData.userId)
+      user = await User.findById(userId)
     } catch(err) {
-      const error = new HttpError(
+      throw new HttpError(
         'Finding user failed, please try again',
         500
       )
-      return next(error)
     }
 
     if(!user){
-      const error= new HttpError('Could not find user for provided id.', 404)
-      return next(error)
+      throw new HttpError('Could not find user for provided id.', 404)
     }
 
     await createTags(tags, tagIds)
@@ -145,42 +115,31 @@ const createCard = async (req, res, next) => {
       await user.save({ session: sess });
 
       await sess.commitTransaction()
-
+      
     } catch(err) {
-      const error = new HttpError('Creating card failed, please try again.', 500)
-      return next(error)
+      console.log(err)
+      throw new HttpError('Creating card failed, please try again.', 500)
     }
-
-    res.status(201).json({ card: createdCard.toObject({getters: true}) })
+    return createdCard.toJSON()
 }
 
-const updateCard = async(req, res, next) => {
-  const errors = validationResult(req);
-
-  if (!errors.isEmpty()) {
-    return next(new HttpError('Invalid inputs passed, please check your data', 422))
-  }
-
-  const cardId = req.params.cid
-  const {title, description, tags, ...rest} = req.body
+const updateCard = async(args) => {
+  const {cardId, userId, title, description, tags, ...rest} = args
   const tagIds = []; 
 
   let card
   try {
     card = await Card.findById(cardId).populate('tags')
   } catch(err) {
-    const error = new HttpError('Could not find a card for that id.', 500)
-    return next(error) 
+    throw new HttpError('Could not find a card for that id.', 500)
   }
 
   if (!card) {
-    const error= new HttpError('Could not find card for provided id.', 404)
-    return next(error)
+    throw new HttpError('Could not find card for provided id.', 404)
   }
   
-  if (card.creator.toString() !== req.userData.userId) {
-    const error = new HttpError('You are not allowed to edit this card', 403)
-    return next(error) 
+  if (card.creator.toString() !== userId) {
+    throw new HttpError('You are not allowed to edit this card', 403)
   }
 
   // create if tag is not existed
@@ -193,10 +152,8 @@ const updateCard = async(req, res, next) => {
       { $pull: { cards: cardId } } // Pull the card ID from the cards array
     )
   } catch (err) {
-    const error = new HttpError('Error removing cards from tag.', 403)
-    return next(error) 
+   throw new HttpError('Error removing cards from tag.', 403)
   }
-
   
   // find Card and remove tags in Card
   try {
@@ -205,8 +162,7 @@ const updateCard = async(req, res, next) => {
       { $pull: { tags: { $nin: tagIds } } }, // Pull tags to remove
     );
   } catch (err) {
-    const error = new HttpError('Error removing tags from card.', 403)
-    return next(error) 
+    throw new HttpError('Error removing tags from card.', 403)
   }
 
   try {
@@ -215,8 +171,7 @@ const updateCard = async(req, res, next) => {
       { $set: { title, description, ...rest } }
     )
   } catch (err) {
-    const error = new HttpError('Error updating card.', 403)
-    return next(error) 
+    throw new HttpError('Error updating card.', 403)
   }
   
   try {
@@ -236,32 +191,26 @@ const updateCard = async(req, res, next) => {
     await sess.commitTransaction()
       
   } catch(err) {
-    const error = new HttpError('Updating card failed, please try again.', 500)
-    return next(error)
+    throw new HttpError('Updating card failed, please try again.', 500)
   }
 
-  res.status(201).json({ card: card.toObject({getters: true}) })
+  return card.toJSON()
 }
 
-const deleteCard = async(req, res, next) => {
-  const cardId = req.params.cid
-
+const deleteCard = async(cardId, userId) => {
   let card
   try {
     card = await Card.findById(cardId).populate('creator').populate('tags')
   } catch(err) {
-    const error = new HttpError('Could not find card for provided id.', 500)
-    return next(error)
+    throw new HttpError('Could not find card for provided id.', 500)
   }
 
   if(!card){
-      const error= new HttpError('Could not find card for provided id.', 404)
-      return next(error)
+    throw new HttpError('Could not find card for provided id.', 404)
   }
 
-  if (card.creator.id !== req.userData.userId) {
-    const error = new HttpError('You are not allowed to delete this card', 403)
-    return next(error) 
+  if (card.creator.id !== userId) {
+    throw new HttpError('You are not allowed to delete this card', 403)
   }
 
   try {
@@ -276,11 +225,10 @@ const deleteCard = async(req, res, next) => {
     await card.creator.save({session: sess})
     await sess.commitTransaction()
   } catch(err) {
-    const error = new HttpError('Something went wrong, could not delete card', 500)
-    return next(error)
+    throw new HttpError('Something went wrong, could not delete card', 500)
   }
 
-  res.status(200).json({message: 'Deleted card.'})
+  return 'Deleted card.'
 }
 
 exports.getCardById = getCardById;
