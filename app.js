@@ -35,7 +35,7 @@ async function startServer() {
   })
     .then(() => {
       app.listen({ port: 5068 }, () => {
-        console.log(`Server ready`);
+        console.log(`Server ready at http://localhost:5068${server.graphqlPath}`);
       });
     })
     .catch(err => {
