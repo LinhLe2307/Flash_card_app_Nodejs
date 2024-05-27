@@ -1,6 +1,4 @@
-
 const HttpError = require('../models/http-error');
-const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const User = require('../models/user');
@@ -10,26 +8,21 @@ const { deleteS3 } = require('../middleware/s3Service');
 
 require('dotenv').config()
 
-const getUsers = async(searchInput) => {
+const getUsers = async() => {
     let users
     try {
-        users = await User.find({firstName: searchInput}, '-password').populate({
-          path: 'cards',
-          populate: {
-            path: 'tags'
-          }
-        })
+      users = await User.find({}, '-password').populate({
+        path: 'cards',
+        populate: {
+          path: 'tags'
+        }
+      })
     } catch(err) {
         throw new HttpError(
             'Fetching users failed, please try again later'
         )
     }
-
     return users
-    // const users = User.find({}, '--password')
-    // res.json({
-    //     users: users.map(user => user.toObject({getters: true}))
-    // })
 }
 
 const getSingleUser = async(userId) => {
@@ -38,16 +31,15 @@ const getSingleUser = async(userId) => {
     user = await User.findById(userId, '-password').populate({
       path: 'cards',
       populate: {
-        path: 'tags',
-        select: 'name'
+        path: 'tags'
       }
     })
   } catch(err) {
       throw new HttpError(
           'Fetching user failed, please try again later'
       )
-  }
-
+    }
+    
   if (!user) {
     throw new HttpError('Could not find a user for the provided id.', 404)
   }
@@ -55,53 +47,29 @@ const getSingleUser = async(userId) => {
   return user
 }
 
-const updateUser = async(req, res, next) => {
-  const errors = validationResult(req);
-
-  if (!errors.isEmpty()) {
-    return next(new HttpError('Invalid inputs passed, please check your data', 422))
-  }
-
-  const userId = req.userData.userId
-
-  const {firstName, 
-    lastName, 
-    phone, 
-    country, 
-    language, 
-    aboutMe,
-    x,
-    linkedIn,
-    instagram,
-    github,
-    website
-  } = req.body
-  
+const updateUser = async(userId, firstName, lastName, imagePath, phone, country, language, aboutMe, x, linkedIn, instagram, github, website) => {
   let user 
   
   try {
     user = await User.findById(userId)
   } catch(err) {
-    const error = new HttpError(
+    throw new HttpError(
       'Fetching users failed, please try again later'
       )
-      return next(error)
   }
 
   if (!user.image) {
-    const error= new HttpError('Could not find image path for provided id.', 404)
-    return next(error)
+    throw new HttpError('Could not find image path for provided id.', 404)
   }
 
-  let image = user.image;
-  if (req.imagePath) {
+  let userImage = user.image;
+  if (imagePath !== userImage) {
       // Delete existing image, then upload a new one
     try {
       await deleteS3(user.image);
-      image = await req.imagePath
+      userImage = await imagePath
     } catch(err) {
-      const error = new HttpError('Something went wrong, could not update image', 500)
-      return next(error)
+      throw new HttpError('Something went wrong, could not update image', 500)
     }
   }
 
@@ -111,7 +79,7 @@ const updateUser = async(req, res, next) => {
     phone, 
     country, 
     language, 
-    image: image, 
+    image: userImage, 
     aboutMe,
     x,
     linkedIn,
@@ -126,54 +94,47 @@ const updateUser = async(req, res, next) => {
         new: true,
       })
   } catch(err) {
-    const error = new HttpError(
+    throw new HttpError(
       'Fetching users failed, please try again later'
     )
-    return next(error)
   }
 
   if (!user) {
-    return next(new HttpError('Could not find a user for the provided id.', 404))
+    throw (new HttpError('Could not find a user for the provided id.', 404))
   }
 
 
   try {
     await user.save()
   } catch(err) {
-    const error = new HttpError('Something went wrong, could not update user', 500)
-    return next(error)
+    throw new HttpError('Something went wrong, could not update user', 500)
   }
-  res.status(201).json({ user: user.toObject({getters: true}) })
+  return user
 }
 
-const deleteUser = async(req, res, next) => {
-  const userId = req.userData.userId
+const deleteUser = async(userId) => {
   let user
   try {
     user = await User.findById(userId).populate('cards')
   } catch(err) {
-    const error = new HttpError(
+    throw new HttpError(
       'Fetching users failed, please try again later'
     )
-    return next(error)
   }
 
   if(!user){
-    const error= new HttpError('Could not find user for provided id.', 404)
-    return next(error)
+    throw new HttpError('Could not find user for provided id.', 404)
   }
 
   if (!user.image) {
-    const error= new HttpError('Could not find image path for provided id.', 404)
-    return next(error)
+    throw new HttpError('Could not find image path for provided id.', 404)
   }
 
   // Delete existing image
   try {
     await deleteS3(user.image);
   } catch(err) {
-    const error = new HttpError('Something went wrong, could not delete image', 500)
-    return next(error)
+    throw new HttpError('Could not delete the user image, please try again', 500)
   }
 
   try {
@@ -186,87 +147,63 @@ const deleteUser = async(req, res, next) => {
     await sess.commitTransaction()
 
   } catch(err){
-    const error = new HttpError('Something went wrong, could not delete user', 500)
-    return next(error)
+    throw new HttpError('Something went wrong, could not delete user', 500)
   }
   
-  res.status(200).json({message: 'Deleted user'})
+  return 'Deleted User'
 }
 
-const signup = async(req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        const error = new HttpError('Invalid inputs passed, please check your data', 422)
-        return next(error)
-    }
-    const { firstName, 
-      lastName, 
-      phone, 
-      country, 
-      language, 
-      email, 
-      password, 
-      aboutMe,
-      x,
-      linkedIn,
-      instagram,
-      github,
-      website
-    } = req.body
-
+const signup = async(firstName, lastName, imagePath, phone, country, language, email, password, aboutMe, x,
+  linkedIn, instagram, github, website) => {
     let existingUser
     try {
         existingUser = await User.findOne({email: email})
     } catch(err) {
-        const error = new HttpError('Signing up failed, please try again later', 500)
-        return next(error)
+        throw new HttpError('Signing up failed, please try again later', 500)
     }
 
     if (existingUser) {
-        const error = new HttpError('User exists already, please login instead', 422)
-        return next(error)
+        throw new HttpError('User exists already, please login instead', 422)
     }
 
     let hashedPassword
     try {
         hashedPassword = await bcrypt.hash(password, 12)
     } catch(err) {
-        const error = new HttpError(
+        throw new HttpError(
             'Password invalid, please try again',
             500
         )
-        return next(error)
     }
 
     const createdUser = new User({
-        firstName, 
-        lastName, 
-        phone, country, language, email, aboutMe,
-        x, linkedIn, instagram, github, website,
-        password: hashedPassword,
-        image: req.imagePath,
-        cards:[]
+      firstName, 
+      lastName, 
+      phone, country, language, email, aboutMe,
+      x, linkedIn, instagram, github, website,
+      password: hashedPassword,
+      image: imagePath,
+      cards:[]
     })
 
     try {
         await createdUser.save()
     } catch(err) {
-        const error = new HttpError('Creating user failed, please try again', 422)
-        return next(error)
+      console.log(err)
+      throw new HttpError('Creating user failed, please try again', 422)
     }
 
     let token
     try {
-        token = jwt.sign({ userId: createdUser.id, email: createdUser.email }, process.env.TOKEN_KEY, {expiresIn: '1h'} )
+      token = jwt.sign({ userId: createdUser.id, email: createdUser.email }, process.env.TOKEN_KEY, {expiresIn: '1h'} )
     } catch(err) {
-        const error = new HttpError(
-            'Signing up failed, please try again later.',
-            500
-        )
-        return next(error)
+      throw new HttpError(
+        'Signing up failed, please try again later.',
+        500
+      )
     }
 
-  res.status(201).json({ userId: createdUser.id, email: createdUser.email, token: token });
+  return({ userId: createdUser.id, email: createdUser.email, token: token });
 
 }
 

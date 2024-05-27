@@ -2,30 +2,21 @@ const {S3} = require('aws-sdk');
 const uuid = require('uuid').v4;
 
 const s3 = new S3();
-const uploadS3 = async(file) => {
-    const param = {
+exports.uploadS3 = async(image) => {
+    const { createReadStream, filename, mimetype } = await image;
+      const stream = createReadStream();
+      
+      const uploadParams = {
         Bucket: process.env.AWS_BUCKET_NAME,
-        Key: `uploads/${uuid()}-${file.originalname}`,
-        Body: file.buffer,
-        ContentType: file.mimetype,
+        Key: `uploads/${uuid()}-${filename}`,
+        Body: stream,
+        ContentType: mimetype,
         Metadata: {
-            'Content-Disposition': 'inline' // Set the Content-Disposition header to 'inline'
+          'Content-Disposition': 'inline' // Set the Content-Disposition header to 'inline'
         }
-    }
-    return await s3.upload(param).promise();
-}
-
-exports.s3Uploadv2 = async(req, res, next) => {
-    try {
-        const file = req.file;
-        if(file && file.originalname) {
-            const result = await uploadS3(file);
-            req.imagePath = result.Location;
-        }
-        next();
-    } catch (err) {
-        next(err);
-    }
+      };
+      
+      return await s3.upload(uploadParams).promise();
 }
 
 exports.deleteS3 = async(filePath) => {
