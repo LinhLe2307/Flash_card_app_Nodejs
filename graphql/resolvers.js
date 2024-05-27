@@ -3,6 +3,7 @@ const axios = require('axios')
 const HttpError = require('../models/http-error');
 const { signup, getUsers, getSingleUser, login, updateUser, deleteUser } = require('../controllers/users-controllers');
 const { getCardById, getCardsByUserId, createCard, updateCard, deleteCard } = require('../controllers/cards-controllers');
+const checkEmailValidation = require('../utils/checkEmailValidation');
 require('dotenv').config();
 
 const resolvers = {
@@ -26,7 +27,7 @@ const resolvers = {
         }
       },
       getCardsByUserId: async(root, args) => {
-        return getCardsByUserId(args.userId, args.searchInput)
+        return getCardsByUserId(args.userId)
       },
       getCardById: async(root, args) => {
         return await getCardById(args.cardId)
@@ -40,16 +41,19 @@ const resolvers = {
       signUpAuth: async(root, { firstName, lastName, image, 
         phone, country, language, email, password, aboutMe, x,
         linkedIn, instagram, github, website }) => {
-        const result = await uploadS3(image)
-  
-        return signup(firstName, lastName, result.Location, phone, country, language, email, password, aboutMe, x,
-        linkedIn, instagram, github, website)
+        const isValidEmail = checkEmailValidation(email)
+        if (isValidEmail) {
+          const result = await uploadS3(image)
+          return signup(firstName, lastName, result.Location, phone, country, language, email, password, aboutMe, x,
+          linkedIn, instagram, github, website)
+        } else {
+          throw new HttpError("Email not in proper format")
+        }
       },
             
       updateUser: async(root, {userId, firstName, lastName, image, phone, country, language, aboutMe, x, linkedIn,
         instagram, github, website}) => {
           let imageUrl
-          console.log(image)
           if (image.file) {
             const result = await uploadS3(image.file)
             imageUrl = result.Location

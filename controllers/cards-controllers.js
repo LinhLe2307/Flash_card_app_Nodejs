@@ -47,7 +47,7 @@ const getCardById = async (cardId) => {
     }
 }
 
-const getCardsByUserId = async (userId, searchInput) => {
+const getCardsByUserId = async (userId) => {
     let userWithCards
     try {
       userWithCards = await User.findById(userId).populate({

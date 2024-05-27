@@ -18,7 +18,6 @@ const typeDefs = gql`
     getCountries: [String!]!
     getCardsByUserId(
       userId: ID!
-      searchInput: String
     ): User
     getCardById(cardId: ID!): JSON!
   }
@@ -81,7 +80,7 @@ const typeDefs = gql`
     email: String!
     image: String!
     phone: String
-    language: String
+    language: String!
     x: String
     linkedIn: String
     instagram: String
