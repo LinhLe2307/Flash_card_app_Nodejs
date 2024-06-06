@@ -140,7 +140,15 @@ const deleteUser = async(userId) => {
   try {
     const sess = await mongoose.startSession()
     sess.startTransaction()
-
+    
+    for (const card of user.cards) {
+      // Remove the card ID from associated tags
+      await mongoose.model('Tag').updateMany(
+        { cards: card._id },
+        { $pull: { cards: card._id } }
+      );
+      // await card.remove()
+    }
     await mongoose.model('Card').deleteMany({ creator: userId })
     await user.deleteOne({session: sess})
 
