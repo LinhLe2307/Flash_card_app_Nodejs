@@ -154,8 +154,13 @@ const deleteUser = async(userId) => {
 
     await sess.commitTransaction()
 
-  } catch(err){
+  } 
+  catch(err) {
+    await sess.abortTransaction();
     throw new HttpError('Something went wrong, could not delete user', 500)
+  } 
+  finally {
+    sess.endSession();
   }
   
   return 'Deleted User'

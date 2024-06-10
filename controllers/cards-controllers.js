@@ -4,7 +4,8 @@ const User = require('../models/user');
 const Tag = require('../models/tag');
 const { default: mongoose } = require('mongoose');
 
-const createTags = async (tags, tagIds) => {
+const createTags = async (tags) => {
+  let tagIds = []
   // if existing tags, then append. Otherwise, create a new one 
   try {
     for (const tagName of tags) {
@@ -24,6 +25,23 @@ const createTags = async (tags, tagIds) => {
     )
   }
   return tagIds
+}
+
+const addCardsToTags = async(tagIds, card, sess) => {
+  if (tagIds.length > 0) {
+    // initialize save
+    tagIds[0].cards.push(card._id)
+    card.tags.push(tagIds[0]._id); // Associate tag with card
+    await tagIds[0].save({ session: sess });
+
+    // Save all tags and associate each tag with the created card
+    await Promise.all(tagIds.slice(1).map(async (singleTag) => {
+      singleTag.cards.push(card._id); // Associate card with tag
+      card.tags.push(singleTag._id); // Associate tag with card
+      await singleTag.save({ session: sess });
+    }));
+  }
+
 }
 
 const getCardById = async (cardId) => {
@@ -70,8 +88,7 @@ const getCardsByUserId = async (userId) => {
 }
 
 const createCard = async (args) => {
-    const {userId, title, description, tags, creator, ...rest} = args
-    const tagIds = [];
+  const {userId, title, description, tags, ...rest} = args
 
     const createdCard = new Card({
       title, description, 
@@ -94,18 +111,13 @@ const createCard = async (args) => {
       throw new HttpError('Could not find user for provided id.', 404)
     }
 
-    await createTags(tags, tagIds)
-
+    const sess = await mongoose.startSession()
     try {
-      const sess = await mongoose.startSession()
       sess.startTransaction()
+      let tagIds = await createTags(tags); // Ensure this returns an array of tag document instances
 
-      // Save all tags and associate each tag with the created card
-      await Promise.all(tagIds.map(async (singleTag) => {
-        singleTag.cards.push(createdCard._id); // Associate card with tag
-        createdCard.tags.push(singleTag._id); // Associate tag with card
-        await singleTag.save({ session: sess });
-      }));
+      await addCardsToTags(tagIds, createdCard, sess)
+
 
       // Save the created card
       await createdCard.save({ session: sess });
@@ -117,15 +129,16 @@ const createCard = async (args) => {
       await sess.commitTransaction()
       
     } catch(err) {
-      console.log(err)
+      await sess.abortTransaction();
       throw new HttpError('Creating card failed, please try again.', 500)
+    } finally {
+      sess.endSession();
     }
     return createdCard.toJSON()
 }
 
 const updateCard = async(args) => {
   const {cardId, userId, title, description, tags, ...rest} = args
-  const tagIds = []; 
 
   let card
   try {
@@ -143,7 +156,7 @@ const updateCard = async(args) => {
   }
 
   // create if tag is not existed
-  await createTags(tags, tagIds)
+  let tagIds = await createTags(tags)
 
   // update Tags
   try {
@@ -175,23 +188,21 @@ const updateCard = async(args) => {
   }
   
   try {
-    let tagsToAdd = tagIds.filter(tagId => !card.tags.find(cardTag => cardTag._id.toString() === tagId._id.toString()))
     const sess = await mongoose.startSession()
     sess.startTransaction()
-    
-    // Save all tags and associate each tag with the created card
-    await Promise.all(tagsToAdd.map(async (singleTag) => {
-      singleTag.cards.push(cardId); // Associate card with tag
-      card.tags.push(singleTag._id); // Associate tag with card
-      await singleTag.save({ session: sess });
-    }));
+    let tagsToAdd = tagIds.filter(tagId => !card.tags.find(cardTag => cardTag._id.toString() === tagId._id.toString()))
+    await addCardsToTags(tagsToAdd, card, sess)
+
     // Save the created card
     await card.save({ session: sess });
     
     await sess.commitTransaction()
       
   } catch(err) {
+    await sess.abortTransaction();
     throw new HttpError('Updating card failed, please try again.', 500)
+  } finally {
+    sess.endSession();
   }
 
   return card.toJSON()
@@ -224,8 +235,13 @@ const deleteCard = async(cardId, userId) => {
     card.creator.cards.pull(card)
     await card.creator.save({session: sess})
     await sess.commitTransaction()
-  } catch(err) {
+  } 
+  catch(err) {
+    await sess.abortTransaction();
     throw new HttpError('Something went wrong, could not delete card', 500)
+  } 
+  finally {
+    sess.endSession();
   }
 
   return 'Deleted card.'
