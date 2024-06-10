@@ -199,10 +199,7 @@ const updateCard = async(args) => {
     await sess.commitTransaction()
       
   } catch(err) {
-    await sess.abortTransaction();
     throw new HttpError('Updating card failed, please try again.', 500)
-  } finally {
-    sess.endSession();
   }
 
   return card.toJSON()
@@ -237,13 +234,8 @@ const deleteCard = async(cardId, userId) => {
     await sess.commitTransaction()
   } 
   catch(err) {
-    await sess.abortTransaction();
     throw new HttpError('Something went wrong, could not delete card', 500)
-  } 
-  finally {
-    sess.endSession();
   }
-
   return 'Deleted card.'
 }
 
