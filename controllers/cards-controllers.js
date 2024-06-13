@@ -157,6 +157,7 @@ const updateCard = async(args) => {
 
   // create if tag is not existed
   let tagIds = await createTags(tags)
+  // console.log(tagIds)
 
   // update Tags
   try {
@@ -178,15 +179,37 @@ const updateCard = async(args) => {
     throw new HttpError('Error removing tags from card.', 403)
   }
 
+  // Extract existing fields
+  const currentFields = card.toObject();
+    
+  // Determine fields to unset
+  const fieldsToUnset = Object.keys(currentFields).filter(
+    field => !['creator', 'title', 'description', 'tags', ...Object.keys(rest)].includes(field) && field !== '_id' && field !== '__v'
+  );
+
   try {
     await Card.findByIdAndUpdate(
-      cardId,
-      { $set: { title, description, ...rest } }
+      { _id: cardId},
+      { $unset: fieldsToUnset.reduce((acc, field) => {
+        acc[field] = "";
+        return acc;
+      }, {})},
+      { new: true, runValidators: true }
+    )
+  } catch (err) {
+    throw new HttpError('Error removing subcard from card.', 403)
+  }
+
+  try {
+    await Card.findByIdAndUpdate(
+      { _id: cardId},
+      { $set: { title, description, ...rest } },
+      { new: true, runValidators: true }
     )
   } catch (err) {
     throw new HttpError('Error updating card.', 403)
   }
-  
+
   try {
     const sess = await mongoose.startSession()
     sess.startTransaction()
