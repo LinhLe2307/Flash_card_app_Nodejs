@@ -151,7 +151,6 @@ const deleteUser = async(userId) => {
     }
     await mongoose.model('Card').deleteMany({ creator: userId })
     await user.deleteOne({session: sess})
-    console.log('user', user)
     await sess.commitTransaction()
 
   } 
