@@ -17,16 +17,16 @@ const allCreatorsQuery = async() => {
         )
 
         SELECT creator_id, first_name, last_name, email, create_date, c.last_update, phone, co.country,
-	JSON_AGG(JSON_BUILD_OBJECT(
-		'flashcard_id', g.flashcard_id,
-		'title', g.title,
-		'description', g.description,
-		'subcards', g.subcards
-	)) AS flashcard
-	FROM creator c
-	INNER JOIN get_flashcard g ON g.flashcard_id = ANY(c.flashcard_id::integer[])
-	INNER JOIN country co ON co.country_id = c.country_id
-	GROUP BY creator_id, first_name, last_name, email, create_date, c.last_update, phone, co.country;
+        JSON_AGG(JSON_BUILD_OBJECT(
+            'flashcard_id', g.flashcard_id,
+            'title', g.title,
+            'description', g.description,
+            'subcards', g.subcards
+        )) AS flashcard
+        FROM creator c
+        INNER JOIN get_flashcard g ON g.flashcard_id = ANY(c.flashcard_id::integer[])
+        INNER JOIN country co ON co.country_id = c.country_id
+        GROUP BY creator_id, first_name, last_name, email, create_date, c.last_update, phone, co.country;
     `)
 }
 
@@ -71,10 +71,32 @@ const createCustomerQueryWithMedia = async(x, linkedin, instagram, github, websi
 	    RETURNING *;`, [x, linkedin, instagram, github, website, firstName, lastName, email, countryId, languageId, password, image, aboutMe, phone])
 }
 
-const updateCustomerQuery = async () => {
+const updateCustomerQuery = async (x, linkedin, instagram, github, website,
+    firstName, lastName, email, countryId, languageId, image, aboutMe, phone) => {
     return await client.query(`
-        
-    `)
+        WITH update_media AS (
+            UPDATE media m
+            SET x=$1, 
+                linkedin=$2',
+                instagram=$3,
+                github=$4,
+                website=$5
+            FROM creator c
+            WHERE c.media_id=m.media_id
+            RETURNING m.media_id
+        )
+        UPDATE creator
+        SET first_name=$6,
+            last_name=$7,
+            email=$8,
+            country_id=$9,
+            language_id=$10,
+            image=$11,
+            about_me=$12,
+            phone=$13,
+            media_id= (SELECT media_id FROM update_media);
+    `, [x, linkedin, instagram, github, website,
+        firstName, lastName, email, countryId, languageId, image, aboutMe, phone])
 }
 
 exports.allCreatorsQuery = allCreatorsQuery

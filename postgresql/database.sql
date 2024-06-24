@@ -227,7 +227,6 @@ CREATE TABLE public.flashcard (
     flashcard_id integer DEFAULT nextval('public.flashcard_flashcard_id_seq'::regclass) NOT NULL,
     title character varying(255) NOT NULL,
     description text NOT NULL,
-    tag_id smallint[] NOT NULL,
     subcard_id smallint[] NOT NULL, 
     last_update timestamp without time zone DEFAULT now() NOT NULL
 );
@@ -388,6 +387,17 @@ CREATE TABLE public.language (
 ALTER TABLE public.language OWNER TO linhle;
 
 --
+-- Name: flashcard_tag; Type: TABLE; Schema: public; Owner: linhle
+--
+
+CREATE TABLE public.flashcard_tag (
+    flashcard_id smallint NOT NULL,
+    tag_id smallint NOT NULL
+)
+
+ALTER TABLE public.flashcard_tag OWNER TO linhle;
+
+--
 -- Data for Name: city; Type: TABLE DATA; Schema: public; Owner: linhle
 --
 
@@ -546,6 +556,13 @@ ALTER TABLE ONLY public.subcard
 
 ALTER TABLE ONLY public.tag
     ADD CONSTRAINT tag_pkey PRIMARY KEY (tag_id);
+
+--
+-- Name: flashcard_tag flashcard_tag_pkey; Type: CONSTRAINT; Schema: public; Owner: linhle
+--
+
+ALTER TABLE ONLY public.flashcard_tag
+    ADD CONSTRAINT flashcard_tag_pkey PRIMARY KEY (flashcard_id, tag_id);
 
 --
 -- Name: language language_pkey; Type: CONSTRAINT; Schema: public; Owner: linhle
@@ -727,6 +744,19 @@ ALTER TABLE ONLY public.flashcard
 ALTER TABLE ONLY public.tag
     ADD CONSTRAINT tag_flashcard_id_fkey FOREIGN KEY (flashcard_id) REFERENCES public.flashcard(flashcard_id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
+--
+-- Name: flashcard_tag flashcard_tag_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: linhle
+--
+
+ALTER TABLE ONLY public.flashcard_tag
+    ADD CONSTRAINT flashcard_tag_id_fkey FOREIGN KEY (flashcard_id) REFERENCES public.flashcard(flashcard_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+--
+-- Name: flashcard_tag flashcard_tag_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: linhle
+--
+
+ALTER TABLE ONLY public.flashcard_tag
+    ADD CONSTRAINT flashcard_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES public.flashcard(tag_id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 --
 -- linhleQL database dump complete
