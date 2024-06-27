@@ -283,7 +283,6 @@ ALTER TABLE public.tag_tag_id_seq OWNER TO linhle;
 
 CREATE TABLE public.tag (
     tag_id integer DEFAULT nextval('public.tag_tag_id_seq'::regclass) NOT NULL,
-    flashcard_id smallint[] NOT NULL,
     name character varying(25) NOT NULL,
     last_update timestamp without time zone DEFAULT now() NOT NULL
 );
@@ -393,7 +392,7 @@ ALTER TABLE public.language OWNER TO linhle;
 CREATE TABLE public.flashcard_tag (
     flashcard_id smallint NOT NULL,
     tag_id smallint NOT NULL
-)
+);
 
 ALTER TABLE public.flashcard_tag OWNER TO linhle;
 
@@ -725,24 +724,10 @@ ALTER TABLE ONLY public.creator
 ALTER TABLE ONLY public.tag ADD CONSTRAINT tag_tag_id_unique UNIQUE (tag_id);
 
 --
--- Name: flashcard flashcard_tag_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: linhle
---
-
-ALTER TABLE ONLY public.flashcard
-    ADD CONSTRAINT flashcard_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES public.tag(tag_id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
---
 -- Name: flashcard flashcard_subcard_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: linhle
 --  
 ALTER TABLE ONLY public.flashcard
     ADD CONSTRAINT flashcard_subcard_id_fkey FOREIGN KEY (subcard_id) REFERENCES public.subcard(subcard_id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
---
--- Name: tag tag_flashcard_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: linhle
---
-
-ALTER TABLE ONLY public.tag
-    ADD CONSTRAINT tag_flashcard_id_fkey FOREIGN KEY (flashcard_id) REFERENCES public.flashcard(flashcard_id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 --
 -- Name: flashcard_tag flashcard_tag_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: linhle
@@ -756,7 +741,7 @@ ALTER TABLE ONLY public.flashcard_tag
 --
 
 ALTER TABLE ONLY public.flashcard_tag
-    ADD CONSTRAINT flashcard_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES public.flashcard(tag_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT tag_flashcard_id_fkey FOREIGN KEY (tag_id) REFERENCES public.flashcard(tag_id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 --
 -- linhleQL database dump complete
