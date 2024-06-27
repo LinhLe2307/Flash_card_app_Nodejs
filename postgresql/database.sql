@@ -741,7 +741,7 @@ ALTER TABLE ONLY public.flashcard_tag
 --
 
 ALTER TABLE ONLY public.flashcard_tag
-    ADD CONSTRAINT tag_flashcard_id_fkey FOREIGN KEY (tag_id) REFERENCES public.flashcard(tag_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT tag_flashcard_id_fkey FOREIGN KEY (tag_id) REFERENCES public.tag(tag_id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 --
 -- linhleQL database dump complete
