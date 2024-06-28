@@ -141,11 +141,11 @@ SET default_with_oids = false;
 -- Name: creator; Type: TABLE; Schema: public; Owner: linhle
 --
 
-CREATE TABLE public.creator (
+CREATE TABLE IF NOT EXISTS public.creator (
     creator_id integer DEFAULT nextval('public.creator_creator_id_seq'::regclass) NOT NULL,
     first_name character varying(45) NOT NULL,
     last_name character varying(45) NOT NULL,
-    email character varying(50) NOT NULL,
+    email character varying(50) NOT NULL UNIQUE,
     country_id smallint NOT NULL,
     language_id smallint NOT NULL,
     media_id smallint,
@@ -192,7 +192,7 @@ ALTER TABLE public.media_media_id_seq OWNER TO linhle;
 -- Name: media; Type: TABLE; Schema: public; Owner: linhle
 --
 
-CREATE TABLE public.media (
+CREATE TABLE IF NOT EXISTS public.media (
     media_id integer DEFAULT nextval('public.media_media_id_seq'::regclass) NOT NULL,
     x character varying(255) NOT NULL,
     linkedin character varying(255) NOT NULL,
@@ -223,11 +223,11 @@ ALTER TABLE public.flashcard_flashcard_id_seq OWNER TO linhle;
 -- Name: actor; Type: TABLE; Schema: public; Owner: linhle
 --
 
-CREATE TABLE public.flashcard (
+CREATE TABLE IF NOT EXISTS public.flashcard (
     flashcard_id integer DEFAULT nextval('public.flashcard_flashcard_id_seq'::regclass) NOT NULL,
     title character varying(255) NOT NULL,
     description text NOT NULL,
-    subcard_id smallint[] NOT NULL, 
+    subcard_id smallint[] NOT NULL UNIQUE, 
     last_update timestamp without time zone DEFAULT now() NOT NULL
 );
 
@@ -252,7 +252,7 @@ ALTER TABLE public.subcard_subcard_id_seq OWNER TO linhle;
 -- Name: subcard; Type: TABLE; Schema: public; Owner: linhle
 --
 
-CREATE TABLE public.subcard (
+CREATE TABLE IF NOT EXISTS public.subcard (
     subcard_id integer DEFAULT nextval('public.subcard_subcard_id_seq'::regclass) NOT NULL,
     term text NOT NULL,
     definition text NOT NULL,
@@ -281,27 +281,14 @@ ALTER TABLE public.tag_tag_id_seq OWNER TO linhle;
 -- Name: tag; Type: TABLE; Schema: public; Owner: linhle
 --
 
-CREATE TABLE public.tag (
+CREATE TABLE IF NOT EXISTS public.tag (
     tag_id integer DEFAULT nextval('public.tag_tag_id_seq'::regclass) NOT NULL,
-    name character varying(25) NOT NULL,
+    name character varying(25) NOT NULL UNIQUE,
     last_update timestamp without time zone DEFAULT now() NOT NULL
 );
 
 
 ALTER TABLE public.tag OWNER TO linhle;
-
-
---
--- Name: creator_info; Type: VIEW; Schema: public; Owner: linhle
---
-
-CREATE VIEW public.creator_info AS
-    SELECT DISTINCT creator_id, first_name, last_name, email, create_date, c.last_update,
-        active, country FROM public.creator c 
-        INNER JOIN public.country ON c.country_id = country.country_id
-        ORDER BY first_name, last_name;
-
-ALTER TABLE public.creator_info OWNER TO linhle;
 
 --
 -- Name: city_city_id_seq; Type: SEQUENCE; Schema: public; Owner: linhle
@@ -321,7 +308,7 @@ ALTER TABLE public.city_city_id_seq OWNER TO linhle;
 -- Name: city; Type: TABLE; Schema: public; Owner: linhle
 --
 
-CREATE TABLE public.city (
+CREATE TABLE IF NOT EXISTS public.city (
     city_id integer DEFAULT nextval('public.city_city_id_seq'::regclass) NOT NULL,
     city character varying(50) NOT NULL,
     country_id smallint NOT NULL,
@@ -349,7 +336,7 @@ ALTER TABLE public.country_country_id_seq OWNER TO linhle;
 -- Name: country; Type: TABLE; Schema: public; Owner: linhle
 --
 
-CREATE TABLE public.country (
+CREATE TABLE IF NOT EXISTS public.country (
     country_id integer DEFAULT nextval('public.country_country_id_seq'::regclass) NOT NULL,
     country character varying(50) NOT NULL,
     last_update timestamp without time zone DEFAULT now() NOT NULL
@@ -376,7 +363,7 @@ ALTER TABLE public.language_language_id_seq OWNER TO linhle;
 -- Name: language; Type: TABLE; Schema: public; Owner: linhle
 --
 
-CREATE TABLE public.language (
+CREATE TABLE IF NOT EXISTS public.language (
     language_id integer DEFAULT nextval('public.language_language_id_seq'::regclass) NOT NULL,
     name character(20) NOT NULL,
     last_update timestamp without time zone DEFAULT now() NOT NULL
@@ -389,7 +376,7 @@ ALTER TABLE public.language OWNER TO linhle;
 -- Name: flashcard_tag; Type: TABLE; Schema: public; Owner: linhle
 --
 
-CREATE TABLE public.flashcard_tag (
+CREATE TABLE IF NOT EXISTS public.flashcard_tag (
     flashcard_id smallint NOT NULL,
     tag_id smallint NOT NULL
 );
@@ -677,71 +664,231 @@ CREATE TRIGGER last_updated BEFORE UPDATE ON public.language FOR EACH ROW EXECUT
 
 CREATE TRIGGER last_updated BEFORE UPDATE ON public.media FOR EACH ROW EXECUTE PROCEDURE public.last_updated();
 
+--
+-- Check if flashcard ids exist
+--
+CREATE OR REPLACE FUNCTION check_flashcard_ids_exist()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if all flashcard_ids exist in the flashcard table
+    PERFORM 1
+    FROM unnest(NEW.flashcard_id) AS f_id
+    WHERE NOT EXISTS (SELECT 1 FROM flashcard WHERE flashcard_id = f_id);
+
+    IF NOT FOUND THEN
+        RETURN NEW;
+    ELSE
+        RAISE EXCEPTION 'flashcard_id array contains values that do not exist in flashcard table';
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger check flashcard ids when the creator create new card
+CREATE TRIGGER check_flashcard_ids_trigger
+BEFORE INSERT OR UPDATE ON creator
+FOR EACH ROW
+EXECUTE FUNCTION check_flashcard_ids_exist();
 
 --
--- Name: creator creator_country_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: linhle
+-- Check if subcard ids exist
 --
+CREATE OR REPLACE FUNCTION check_subcard_ids_exist()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if all subcard_ids exist in the subcard table
+    PERFORM 1
+    FROM unnest(NEW.subcard_id) AS f_id
+    WHERE NOT EXISTS (SELECT 1 FROM subcard WHERE subcard_id = f_id);
 
+    IF NOT FOUND THEN
+        RETURN NEW;
+    ELSE
+        RAISE EXCEPTION 'subcard_id array contains values that do not exist in subcard table';
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger check subcard ids when the flashcard create new card
+CREATE TRIGGER check_subcard_ids_trigger
+BEFORE INSERT OR UPDATE ON flashcard
+FOR EACH ROW
+EXECUTE FUNCTION check_subcard_ids_exist();
+
+--
+-- Check if language ids exist
+--
+CREATE OR REPLACE FUNCTION check_language_ids_exist()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if the language_id exists in the language table
+    IF NOT EXISTS (SELECT 1 FROM language WHERE language_id = NEW.language_id) THEN
+        RAISE EXCEPTION 'language_id % does not exist in language table', NEW.language_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger check language ids when the creator create new card
+CREATE TRIGGER check_language_ids_trigger
+BEFORE INSERT OR UPDATE ON creator
+FOR EACH ROW
+EXECUTE FUNCTION check_language_ids_exist();
+
+--
+-- Check if country ids exist
+--
+CREATE OR REPLACE FUNCTION check_country_ids_exist()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if the country_id exists in the country table
+    IF NOT EXISTS (SELECT 1 FROM country WHERE country_id = NEW.country_id) THEN
+        RAISE EXCEPTION 'country_id % does not exist in country table', NEW.language_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger check country ids when the creator create new card
+CREATE TRIGGER check_country_ids_trigger
+BEFORE INSERT OR UPDATE ON creator
+FOR EACH ROW
+EXECUTE FUNCTION check_country_ids_exist();
+
+
+--
+-- Delete related flashcards
+--
+CREATE OR REPLACE FUNCTION delete_related_flashcards()
+RETURNS TRIGGER AS $$
+DECLARE
+    id smallint;
+BEGIN
+	IF OLD.flashcard_id IS NOT NULL THEN
+	    FOREACH id IN ARRAY OLD.flashcard_id
+	    LOOP
+	        DELETE FROM flashcard WHERE flashcard_id = id;
+	    END LOOP;
+	END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Delete flashcards after creator delete
+CREATE TRIGGER delete_flashcards_after_creator_delete
+AFTER DELETE ON creator
+FOR EACH ROW
+EXECUTE FUNCTION delete_related_flashcards();
+
+--
+-- Delete related flashcards tag
+--
+CREATE OR REPLACE FUNCTION delete_related_flashcard_tags()
+RETURNS TRIGGER AS $$
+DECLARE
+    id_element smallint;
+BEGIN
+    IF OLD.flashcard_id IS NOT NULL THEN
+        DELETE FROM flashcard_tag WHERE flashcard_id = OLD.flashcard_id;
+    END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Delete flashcards tags after flashcard delete
+CREATE TRIGGER delete_flashcard_tags_before_flashcard_delete
+BEFORE DELETE ON flashcard
+FOR EACH ROW
+EXECUTE FUNCTION delete_related_flashcard_tags();
+
+--
+-- Delete related flashcards tag
+--
+CREATE OR REPLACE FUNCTION delete_related_tag_flashcard()
+RETURNS TRIGGER AS $$
+DECLARE
+    id_element smallint;
+BEGIN
+    IF OLD.tag_id IS NOT NULL THEN
+        DELETE FROM flashcard_tag WHERE tag_id = OLD.tag_id;
+    END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Delete flashcards tags after flashcard delete
+CREATE TRIGGER delete_flashcard_tags_before_tag_delete
+BEFORE DELETE ON tag
+FOR EACH ROW
+EXECUTE FUNCTION delete_related_tag_flashcard();
+
+--
+-- Delete related subcard tag
+--
+CREATE OR REPLACE FUNCTION delete_related_subcards()
+RETURNS TRIGGER AS $$
+DECLARE
+    id_element smallint;
+BEGIN
+    IF OLD.subcard_id IS NOT NULL THEN
+        FOREACH id IN ARRAY OLD.subcard_id
+        LOOP
+            DELETE FROM subcard WHERE subcard_id = id;
+        END LOOP;
+    END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Delete flashcards tags after flashcard delete
+CREATE TRIGGER delete_subcards_before_flashcard_delete
+BEFORE DELETE ON flashcard
+FOR EACH ROW
+EXECUTE FUNCTION delete_related_subcards();
+
+
+-- Add foreign key constraint for country_id in the creator table
 ALTER TABLE ONLY public.creator
     ADD CONSTRAINT creator_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.country(country_id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
---
--- Name: creator creator_language_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: linhle
---
-
+-- Add foreign key constraint for language_id in the creator table
 ALTER TABLE ONLY public.creator
     ADD CONSTRAINT creator_language_id_fkey FOREIGN KEY (language_id) REFERENCES public.language(language_id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
---
--- Name: creator creator_media_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: linhle
---
-
+-- Add foreign key constraint for media_id in the creator table
 ALTER TABLE ONLY public.creator
     ADD CONSTRAINT creator_media_id_fkey FOREIGN KEY (media_id) REFERENCES public.media(media_id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
---
--- Name: city fk_city; Type: FK CONSTRAINT; Schema: public; Owner: linhle
---
-
+-- Add foreign key constraint for country_id in the city table
 ALTER TABLE ONLY public.city
     ADD CONSTRAINT fk_city FOREIGN KEY (country_id) REFERENCES public.country(country_id);
 
---
--- Name: flashcard flashcard_flashcard_id_unique; Type: FK CONSTRAINT UNIQUE; Schema: public; Owner: linhle
---
-ALTER TABLE ONLY public.flashcard ADD CONSTRAINT flashcard_flashcard_id_unique UNIQUE (flashcard_id);
+-- Add unique constraint for flashcard_id in the flashcard table
+ALTER TABLE ONLY public.flashcard 
+    ADD CONSTRAINT flashcard_flashcard_id_unique UNIQUE (flashcard_id);
 
---
--- Name: creator creator_flashcard_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: linhle
---
+-- Add unique constraint for subcard_id in the flashcard table
+ALTER TABLE ONLY public.flashcard 
+    ADD CONSTRAINT flashcard_subcard_id_unique UNIQUE (subcard_id);
 
-ALTER TABLE ONLY public.creator
-    ADD CONSTRAINT creator_flashcard_id_fkey FOREIGN KEY (flashcard_id) REFERENCES public.flashcard(flashcard_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+-- Add foreign key constraint for flashcard_id array in the creator table (using triggers for array columns)
+-- See detailed implementation with triggers in the previous response
 
---
--- Name: tag tag_tag_id_fkey; Type: FK CONSTRAINT UNIQUE; Schema: public; Owner: linhle
---
-ALTER TABLE ONLY public.tag ADD CONSTRAINT tag_tag_id_unique UNIQUE (tag_id);
+-- Add unique constraint for tag_id in the tag table
+ALTER TABLE ONLY public.tag 
+    ADD CONSTRAINT tag_tag_id_unique UNIQUE (tag_id);
 
---
--- Name: flashcard flashcard_subcard_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: linhle
---  
-ALTER TABLE ONLY public.flashcard
-    ADD CONSTRAINT flashcard_subcard_id_fkey FOREIGN KEY (subcard_id) REFERENCES public.subcard(subcard_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+-- Add foreign key constraint for subcard_id array in the flashcard table (using triggers for array columns)
+-- See detailed implementation with triggers in the previous response
 
---
--- Name: flashcard_tag flashcard_tag_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: linhle
---
-
+-- Add foreign key constraint for flashcard_id in the flashcard_tag table
 ALTER TABLE ONLY public.flashcard_tag
-    ADD CONSTRAINT flashcard_tag_id_fkey FOREIGN KEY (flashcard_id) REFERENCES public.flashcard(flashcard_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT flashcard_tag_flashcard_id_fkey FOREIGN KEY (flashcard_id) REFERENCES public.flashcard(flashcard_id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
---
--- Name: flashcard_tag flashcard_tag_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: linhle
---
-
+-- Add foreign key constraint for tag_id in the flashcard_tag table
 ALTER TABLE ONLY public.flashcard_tag
-    ADD CONSTRAINT tag_flashcard_id_fkey FOREIGN KEY (tag_id) REFERENCES public.tag(tag_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+    ADD CONSTRAINT flashcard_tag_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES public.tag(tag_id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
 --
 -- linhleQL database dump complete
