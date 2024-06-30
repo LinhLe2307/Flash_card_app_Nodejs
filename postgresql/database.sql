@@ -664,6 +664,48 @@ CREATE TRIGGER last_updated BEFORE UPDATE ON public.language FOR EACH ROW EXECUT
 
 CREATE TRIGGER last_updated BEFORE UPDATE ON public.media FOR EACH ROW EXECUTE PROCEDURE public.last_updated();
 
+-- Add foreign key constraint for country_id in the creator table
+ALTER TABLE ONLY public.creator
+    ADD CONSTRAINT creator_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.country(country_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+-- Add foreign key constraint for language_id in the creator table
+ALTER TABLE ONLY public.creator
+    ADD CONSTRAINT creator_language_id_fkey FOREIGN KEY (language_id) REFERENCES public.language(language_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+-- Add foreign key constraint for media_id in the creator table
+ALTER TABLE ONLY public.creator
+    ADD CONSTRAINT creator_media_id_fkey FOREIGN KEY (media_id) REFERENCES public.media(media_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+-- Add foreign key constraint for country_id in the city table
+ALTER TABLE ONLY public.city
+    ADD CONSTRAINT fk_city FOREIGN KEY (country_id) REFERENCES public.country(country_id);
+
+-- Add unique constraint for flashcard_id in the flashcard table
+ALTER TABLE ONLY public.flashcard 
+    ADD CONSTRAINT flashcard_flashcard_id_unique UNIQUE (flashcard_id);
+
+-- Add unique constraint for subcard_id in the flashcard table
+ALTER TABLE ONLY public.flashcard 
+    ADD CONSTRAINT flashcard_subcard_id_unique UNIQUE (subcard_id);
+
+-- Add foreign key constraint for flashcard_id array in the creator table (using triggers for array columns)
+-- See detailed implementation with triggers in the previous response
+
+-- Add unique constraint for tag_id in the tag table
+ALTER TABLE ONLY public.tag 
+    ADD CONSTRAINT tag_tag_id_unique UNIQUE (tag_id);
+
+-- Add foreign key constraint for subcard_id array in the flashcard table (using triggers for array columns)
+-- See detailed implementation with triggers in the previous response
+
+-- Add foreign key constraint for flashcard_id in the flashcard_tag table
+ALTER TABLE ONLY public.flashcard_tag
+    ADD CONSTRAINT flashcard_tag_flashcard_id_fkey FOREIGN KEY (flashcard_id) REFERENCES public.flashcard(flashcard_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+-- Add foreign key constraint for tag_id in the flashcard_tag table
+ALTER TABLE ONLY public.flashcard_tag
+    ADD CONSTRAINT flashcard_tag_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES public.tag(tag_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
 --
 -- Check if flashcard ids exist
 --
@@ -847,48 +889,31 @@ BEFORE DELETE ON flashcard
 FOR EACH ROW
 EXECUTE FUNCTION delete_related_subcards();
 
-
--- Add foreign key constraint for country_id in the creator table
-ALTER TABLE ONLY public.creator
-    ADD CONSTRAINT creator_country_id_fkey FOREIGN KEY (country_id) REFERENCES public.country(country_id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
--- Add foreign key constraint for language_id in the creator table
-ALTER TABLE ONLY public.creator
-    ADD CONSTRAINT creator_language_id_fkey FOREIGN KEY (language_id) REFERENCES public.language(language_id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
--- Add foreign key constraint for media_id in the creator table
-ALTER TABLE ONLY public.creator
-    ADD CONSTRAINT creator_media_id_fkey FOREIGN KEY (media_id) REFERENCES public.media(media_id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
--- Add foreign key constraint for country_id in the city table
-ALTER TABLE ONLY public.city
-    ADD CONSTRAINT fk_city FOREIGN KEY (country_id) REFERENCES public.country(country_id);
-
--- Add unique constraint for flashcard_id in the flashcard table
-ALTER TABLE ONLY public.flashcard 
-    ADD CONSTRAINT flashcard_flashcard_id_unique UNIQUE (flashcard_id);
-
--- Add unique constraint for subcard_id in the flashcard table
-ALTER TABLE ONLY public.flashcard 
-    ADD CONSTRAINT flashcard_subcard_id_unique UNIQUE (subcard_id);
-
--- Add foreign key constraint for flashcard_id array in the creator table (using triggers for array columns)
--- See detailed implementation with triggers in the previous response
-
--- Add unique constraint for tag_id in the tag table
-ALTER TABLE ONLY public.tag 
-    ADD CONSTRAINT tag_tag_id_unique UNIQUE (tag_id);
-
--- Add foreign key constraint for subcard_id array in the flashcard table (using triggers for array columns)
--- See detailed implementation with triggers in the previous response
-
--- Add foreign key constraint for flashcard_id in the flashcard_tag table
-ALTER TABLE ONLY public.flashcard_tag
-    ADD CONSTRAINT flashcard_tag_flashcard_id_fkey FOREIGN KEY (flashcard_id) REFERENCES public.flashcard(flashcard_id) ON UPDATE CASCADE ON DELETE RESTRICT;
-
--- Add foreign key constraint for tag_id in the flashcard_tag table
-ALTER TABLE ONLY public.flashcard_tag
-    ADD CONSTRAINT flashcard_tag_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES public.tag(tag_id) ON UPDATE CASCADE ON DELETE RESTRICT;
+--
+-- Update subcards
+--
+CREATE OR REPLACE FUNCTION upsert_subcards(subcards jsonb)
+RETURNS VOID AS $$
+DECLARE
+    subcard jsonb;
+BEGIN
+    FOR subcard IN SELECT * FROM jsonb_array_elements(subcards)
+    LOOP
+        INSERT INTO subcard (subcard_id, term, definition, subcard_image)
+        VALUES (
+            COALESCE(subcard->>'subcard_id', DEFAULT::smallint),
+            subcard->>'term',
+            subcard->>'definition',
+            subcard->>'subcard_image'
+        )
+        ON CONFLICT (subcard_id) DO UPDATE
+        SET
+            term = EXCLUDED.term,
+            definition = EXCLUDED.definition,
+            subcard_image = EXCLUDED.subcard_image;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
 
 --
 -- linhleQL database dump complete
