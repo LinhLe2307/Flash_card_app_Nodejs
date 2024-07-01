@@ -148,8 +148,8 @@ CREATE TABLE IF NOT EXISTS public.creator (
     email character varying(50) NOT NULL UNIQUE,
     country_id smallint NOT NULL,
     language_id smallint NOT NULL,
-    media_id smallint,
-    flashcard_id smallint[],
+    media_id smallint UNIQUE,
+    flashcard_id smallint[] UNIQUE,
     password character varying(255) NOT NULL,
     image character varying(255) NOT NULL,
     about_me text,
@@ -706,30 +706,30 @@ ALTER TABLE ONLY public.flashcard_tag
 ALTER TABLE ONLY public.flashcard_tag
     ADD CONSTRAINT flashcard_tag_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES public.tag(tag_id) ON UPDATE CASCADE ON DELETE RESTRICT;
 
---
--- Check if flashcard ids exist
---
-CREATE OR REPLACE FUNCTION check_flashcard_ids_exist()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Check if all flashcard_ids exist in the flashcard table
-    PERFORM 1
-    FROM unnest(NEW.flashcard_id) AS f_id
-    WHERE NOT EXISTS (SELECT 1 FROM flashcard WHERE flashcard_id = f_id);
+-- --
+-- -- Check if flashcard ids exist
+-- --
+-- CREATE OR REPLACE FUNCTION check_flashcard_ids_exist()
+-- RETURNS TRIGGER AS $$
+-- BEGIN
+--     -- Check if all flashcard_ids exist in the flashcard table
+--     PERFORM 1
+--     FROM unnest(NEW.flashcard_id) AS f_id
+--     WHERE NOT EXISTS (SELECT 1 FROM flashcard WHERE flashcard_id = f_id);
 
-    IF NOT FOUND THEN
-        RETURN NEW;
-    ELSE
-        RAISE EXCEPTION 'flashcard_id array contains values that do not exist in flashcard table';
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
+--     IF NOT FOUND THEN
+--         RETURN NEW;
+--     ELSE
+--         RAISE EXCEPTION 'flashcard_id array contains values that do not exist in flashcard table';
+--     END IF;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
--- Trigger check flashcard ids when the creator create new card
-CREATE TRIGGER check_flashcard_ids_trigger
-BEFORE INSERT OR UPDATE ON creator
-FOR EACH ROW
-EXECUTE FUNCTION check_flashcard_ids_exist();
+-- -- Trigger check flashcard ids when the creator create new card
+-- CREATE TRIGGER check_flashcard_ids_trigger
+-- BEFORE INSERT OR UPDATE ON creator
+-- FOR EACH ROW
+-- EXECUTE FUNCTION check_flashcard_ids_exist();
 
 --
 -- Check if subcard ids exist
@@ -784,7 +784,7 @@ RETURNS TRIGGER AS $$
 BEGIN
     -- Check if the country_id exists in the country table
     IF NOT EXISTS (SELECT 1 FROM country WHERE country_id = NEW.country_id) THEN
-        RAISE EXCEPTION 'country_id % does not exist in country table', NEW.language_id;
+        RAISE EXCEPTION 'country_id % does not exist in country table', NEW.country_id;
     END IF;
     RETURN NEW;
 END;
@@ -796,6 +796,25 @@ BEFORE INSERT OR UPDATE ON creator
 FOR EACH ROW
 EXECUTE FUNCTION check_country_ids_exist();
 
+--
+-- Check if media ids exist
+--
+CREATE OR REPLACE FUNCTION check_media_ids_exist()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if the media_id exists in the media table
+    IF NOT EXISTS (SELECT 1 FROM media WHERE media_id = NEW.media_id) THEN
+        RAISE EXCEPTION 'media_id % does not exist in media table', NEW.media_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger check media ids when the creator create new card
+CREATE TRIGGER check_media_ids_trigger
+BEFORE INSERT OR UPDATE ON creator
+FOR EACH ROW
+EXECUTE FUNCTION check_media_ids_exist();
 
 --
 -- Delete related flashcards
@@ -820,6 +839,29 @@ CREATE TRIGGER delete_flashcards_after_creator_delete
 AFTER DELETE ON creator
 FOR EACH ROW
 EXECUTE FUNCTION delete_related_flashcards();
+
+--
+-- Delete related flashcards
+--
+CREATE OR REPLACE FUNCTION delete_related_creator()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Update creator table to remove the flashcard_id from the array
+    UPDATE creator 
+    SET flashcard_id = array_remove(flashcard_id, OLD.flashcard_id)
+    WHERE OLD.flashcard_id = ANY(flashcard_id);
+
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Delete flashcard ID from creator after flashcard delete
+CREATE TRIGGER delete_creator_after_flashcard_delete
+AFTER DELETE ON flashcard
+FOR EACH ROW
+EXECUTE FUNCTION delete_related_creator();
+
 
 --
 -- Delete related flashcards tag
@@ -890,31 +932,26 @@ FOR EACH ROW
 EXECUTE FUNCTION delete_related_subcards();
 
 --
--- Update subcards
+-- Delete related creator media
 --
-CREATE OR REPLACE FUNCTION upsert_subcards(subcards jsonb)
-RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION delete_related_creator_media()
+RETURNS TRIGGER AS $$
 DECLARE
-    subcard jsonb;
+    id_element smallint;
 BEGIN
-    FOR subcard IN SELECT * FROM jsonb_array_elements(subcards)
-    LOOP
-        INSERT INTO subcard (subcard_id, term, definition, subcard_image)
-        VALUES (
-            COALESCE(subcard->>'subcard_id', DEFAULT::smallint),
-            subcard->>'term',
-            subcard->>'definition',
-            subcard->>'subcard_image'
-        )
-        ON CONFLICT (subcard_id) DO UPDATE
-        SET
-            term = EXCLUDED.term,
-            definition = EXCLUDED.definition,
-            subcard_image = EXCLUDED.subcard_image;
-    END LOOP;
+    IF OLD.media_id IS NOT NULL THEN
+        DELETE FROM media WHERE media_id = OLD.media_id;
+    END IF;
+    RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- Delete media after creator delete
+CREATE TRIGGER delete_media_after_creator_delete
+AFTER DELETE ON creator
+FOR EACH ROW
+EXECUTE FUNCTION delete_related_creator_media();
 --
 -- linhleQL database dump complete
 --

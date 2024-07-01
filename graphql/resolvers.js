@@ -1,8 +1,8 @@
-const { uploadS3 } = require('../middleware/s3Service')
 const axios = require('axios')
 const HttpError = require('../models/http-error');
-const { signup, getUsers, getSingleUser, login, updateUser, deleteUser } = require('../controllers/users-controllers');
-const { getCardById, getCardsByUserId, createCard, updateCard, deleteCard } = require('../controllers/cards-controllers');
+const { uploadS3 } = require('../middleware/s3Service')
+const { signup, getUsers, getSingleUser, login, updateUser, deleteUserById } = require('../controllers/creators-controllers');
+const { createCard, getCardById, deleteCardById, updateCard } = require('../controllers/cards-controllers');
 const checkEmailValidation = require('../utils/checkEmailValidation');
 require('dotenv').config();
 
@@ -22,12 +22,11 @@ const resolvers = {
           const response = await axios.get(`https://countriesnow.space/api/v0.1/countries`)
           return response.data.data.map(country => country.country)
         } catch(error) {
-          console.log(error)
           throw new HttpError('Failed to fetch countries');
         }
       },
       getCardsByUserId: async(root, args) => {
-        return getCardsByUserId(args.userId)
+        return getSingleUser(args.userId)
       },
       getCardById: async(root, args) => {
         return await getCardById(args.cardId)
@@ -39,19 +38,19 @@ const resolvers = {
       },
   
       signUpAuth: async(root, { firstName, lastName, image, 
-        phone, country, language, email, password, aboutMe, x,
+        phone, countryId, languageId, email, password, aboutMe, x,
         linkedIn, instagram, github, website }) => {
         const isValidEmail = checkEmailValidation(email)
         if (isValidEmail) {
           const result = await uploadS3(image)
-          return signup(firstName, lastName, result.Location, phone, country, language, email, password, aboutMe, x,
+          return signup(firstName, lastName, result.Location, phone, 110, 7, email, password, aboutMe, x,
           linkedIn, instagram, github, website)
         } else {
           throw new HttpError("Email not in proper format")
         }
       },
             
-      updateUser: async(root, {userId, firstName, lastName, image, phone, country, language, aboutMe, x, linkedIn,
+      updateUser: async(root, {userId, firstName, lastName, image, phone, countryId, languageId, aboutMe, x, linkedIn,
         instagram, github, website}) => {
           let imageUrl
           if (image.file) {
@@ -61,7 +60,7 @@ const resolvers = {
             imageUrl = image.url
           }
           return updateUser(
-            userId, firstName, lastName, imageUrl, phone, country, language, aboutMe, x, linkedIn, instagram, github, website
+            userId, firstName, lastName, imageUrl, phone, countryId, languageId, aboutMe, x, linkedIn, instagram, github, website
           )
       },
       createCard: async(root, args) => {
@@ -71,10 +70,10 @@ const resolvers = {
         return await updateCard(args.input)
       },      
       deleteUser: async(root, args) => {
-        return deleteUser(args.userId)
+        return deleteUserById(args.userId)
       },
       deleteCard: async(root, args) => {
-        return deleteCard(args.cardId, args.userId)
+        return deleteCardById(args.cardId, args.userId)
       } 
     }
   };

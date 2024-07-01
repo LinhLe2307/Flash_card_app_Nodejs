@@ -8,13 +8,10 @@ const checkMedia = (x, linkedin, instagram, github, website) => {
 
 const checkFlashcardByUserId = async(userId, cardId) => {
     let query= `
-        WITH creator_flashcards AS (SELECT flashcard_id FROM creator
-            WHERE creator_id=${userId}
-        )
-
-        SELECT f.flashcard_id, f.subcard_id FROM creator_flashcards cf 
-	    INNER JOIN flashcard f ON f.flashcard_id = ANY(cf.flashcard_id) 
-        WHERE cf.flashcard_id && ARRAY[${cardId}]::smallint[];
+        SELECT f.*, c.creator_id
+        FROM flashcard f
+        JOIN creator c ON c.flashcard_id @> ARRAY[f.flashcard_id]::smallint[]
+        WHERE f.flashcard_id =${cardId} AND c.creator_id=${userId};
     `
     return await client.query(query)
 }

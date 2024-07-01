@@ -1,10 +1,10 @@
 const client = require('../postgresql/db')
 
 const createSubcardQuery = async(rest) => {
-    const subcards = Object.values(rest).map(({term, definition, image}) => ({
+    const subcards = Object.values(rest).map(({term, definition, imageUrl}) => ({
         term,
         definition,
-        subcard_image: image ?? '' // or whatever image path/URL you want to set
+        subcard_image: imageUrl ?? '' // or whatever image path/URL you want to set
     }));
     
     // Create the values part of the query
@@ -21,14 +21,13 @@ const createSubcardQuery = async(rest) => {
     return await client.query(query)
 }
 
-const updateCardQuery = async(title, description, tagIds, existingSubcard, rest) => {
+const updateCardQuery = async(title, description, tagIds, existingSubcards, rest, cardId) => {
     const updateQueries = [];
-    
     Object.entries(rest).forEach( ([key, value]) => {
-        if (existingSubcard.find(sub => +sub === +key)) {
-            updateQueries.push(`(${key}, '${value.term}', '${value.definition}', '${value.subcard_image ?? ''}')`)
+        if (existingSubcards.find(sub => +sub === +key)) {
+            updateQueries.push(`(${key}, '${value.term}', '${value.definition}', '${value.imageUrl ?? ''}')`)
         } else {
-            updateQueries.push(`(nextval('subcard_subcard_id_seq'), '${value.term}', '${value.definition}', '${value.subcard_image ?? ''}')`)
+            updateQueries.push(`(nextval('subcard_subcard_id_seq'), '${value.term}', '${value.definition}', '${value.imageUrl ?? ''}')`)
         }
     });
     let query =`
@@ -56,8 +55,8 @@ const updateCardQuery = async(title, description, tagIds, existingSubcard, rest)
                 SELECT array_agg(s.subcard_id)
                 FROM update_subcard s
             ),
-            title=${title},
-            description=${description}
+            title='${title}',
+            description='${description}'
         WHERE flashcard_id = ${cardId}
         RETURNING *;
     `
@@ -80,21 +79,17 @@ const createCardQuery = async(tagIds, subcardIds, title, description, userId) =>
             RETURNING flashcard_id, tag_id
         ), 
 			update_creator AS (
-				UPDATE creator
-				SET flashcard_id=(
-					SELECT array_append(
-						COALESCE(c.flashcard_id),
-						f.flashcard_id
-					)
-					FROM insert_flashcard f
-					WHERE c.creator_id=${userId}
-				)
-				FROM creator c
-				WHERE c.creator_id=${userId}
-		), flashcard_tags AS (
+                UPDATE creator c
+                SET flashcard_id = array_append(
+                    COALESCE(c.flashcard_id, '{}'),
+                    (SELECT f.flashcard_id FROM insert_flashcard f)
+                )
+                WHERE c.creator_id = ${userId}
+                RETURNING c.creator_id, c.flashcard_id
+        ), flashcard_tags AS (
 		    SELECT 
 		        ft.flashcard_id,
-		        JSON_AGG(JSON_BUILD_OBJECT('tag_id', t.tag_id, 'name', t.name)) AS tags
+		        JSON_AGG(JSON_BUILD_OBJECT('id', t.tag_id, 'name', t.name)) AS tags
 		    FROM update_flashcard_tag ft
 		    JOIN tag t ON t.tag_id = ft.tag_id
 		    GROUP BY ft.flashcard_id
@@ -103,14 +98,14 @@ const createCardQuery = async(tagIds, subcardIds, title, description, userId) =>
 		    SELECT 
 		        f.flashcard_id,
 		        JSON_AGG(JSON_BUILD_OBJECT(
-                	'subcard_id', s.subcard_id, 'term', s.term, 'definition', s.definition, 'image', s.subcard_image
+                	'id', s.subcard_id, 'term', s.term, 'definition', s.definition, 'imageUrl', s.subcard_image
             	)) AS subcards
 		    FROM insert_flashcard f
 		    JOIN subcard s ON s.subcard_id = ANY(f.subcard_id)
 		    GROUP BY f.flashcard_id
 		)
 		SELECT 
-		    f.flashcard_id,
+		    f.flashcard_id AS id,
 		    f.title, 
 		    f.description, 
 		    ft.tags,
@@ -123,60 +118,58 @@ const createCardQuery = async(tagIds, subcardIds, title, description, userId) =>
     return await client.query(query)
 }
 
-const getCardsByUserIdQuery = async (userId) => {
-    let query= `
-        SELECT
-            c.creator_id,
-            f.flashcard_id,
-            f.title, 
-            f.description,
-            JSON_AGG(
-                CASE WHEN t.tag_id IS NOT NULL
-                THEN JSON_BUILD_OBJECT(
-                'tag_id', t.tag_id, 'name', t.name)
-                END
-            ) FILTER (WHERE t.tag_id IS NOT NULL) AS tags,
-            JSON_AGG(
-                JSON_BUILD_OBJECT(
-                'subcard_id', g.subcard_id, 'term', g.term, 'definition', g.definition, 'image', g.subcard_image
-            )) AS subcards
-        FROM flashcard f
-        LEFT JOIN creator c ON f.flashcard_id = ANY(c.flashcard_id)    
-        LEFT JOIN subcard g ON g.subcard_id = ANY(f.subcard_id)
-        LEFT JOIN flashcard_tag ft ON ft.flashcard_id = f.flashcard_id
-        LEFT JOIN tag t ON t.tag_id = ft.tag_id
-        WHERE c.creator_id=${userId}
-        GROUP BY c.creator_id, f.flashcard_id, f.title, f.description
-    `
-    return await client.query(query)
-}
-
 const getCardByIdQuery = async(cardId) => {
     const query = `
+        WITH flashcard_subcards AS (
+            SELECT f.flashcard_id,
+            JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'id', g.subcard_id, 'term', g.term, 'definition', g.definition, 'imageUrl', g.subcard_image
+            )) AS subcards
+            FROM flashcard f
+            LEFT JOIN subcard g ON g.subcard_id = ANY(f.subcard_id)
+            GROUP BY f.flashcard_id
+        ), flashcard_tags AS (
+            SELECT 
+                f.flashcard_id,
+                JSON_AGG(
+                    CASE WHEN t.tag_id IS NOT NULL
+                    THEN JSON_BUILD_OBJECT(
+                        'id', t.tag_id, 'name', t.name)
+                    END
+                    ) FILTER (WHERE t.tag_id IS NOT NULL) AS tags
+            FROM flashcard f
+            LEFT JOIN flashcard_tag ft ON ft.flashcard_id = f.flashcard_id
+            LEFT JOIN tag t ON t.tag_id = ft.tag_id
+            GROUP BY f.flashcard_id
+        ), get_creator AS (
+			SELECT 
+			f.flashcard_id,
+			JSON_AGG(JSON_BUILD_OBJECT(
+                'image', image,
+				'firstName', first_name,
+				'lastName', last_name,
+				'email', email
+			)) as creator
+			FROM flashcard f
+			JOIN creator c ON f.flashcard_id = ANY(c.flashcard_id)
+			GROUP BY f.flashcard_id
+		)
         SELECT
-            f.flashcard_id,
+            f.flashcard_id AS id,
             f.title, 
             f.description,
-            JSON_AGG(
-                CASE WHEN t.tag_id IS NOT NULL
-                THEN JSON_BUILD_OBJECT(
-                'tag_id', t.tag_id, 'name', t.name)
-                END
-            ) FILTER (WHERE t.tag_id IS NOT NULL) AS tags,
-            JSON_AGG(
-                JSON_BUILD_OBJECT(
-                'subcard_id', g.subcard_id, 'term', g.term, 'definition', g.definition, 'image', g.subcard_image
-            )) AS subcards
+            c.creator,
+            fs.subcards,
+            ft.tags
         FROM flashcard f
-        LEFT JOIN subcard g ON g.subcard_id = ANY(f.subcard_id)
-        LEFT JOIN flashcard_tag ft ON ft.flashcard_id = f.flashcard_id
-        LEFT JOIN tag t ON t.tag_id = ft.tag_id
+        JOIN get_creator c ON f.flashcard_id = c.flashcard_id
+        JOIN flashcard_subcards fs ON f.flashcard_id = fs.flashcard_id
+        JOIN flashcard_tags ft ON f.flashcard_id = ft.flashcard_id
         WHERE f.flashcard_id=${cardId}
-        GROUP BY f.flashcard_id, f.title, f.description
     `
     return await client.query(query)
 }
-
 
 const deleteCardByIdQuery = async(cardId) => {
     let query=`
@@ -188,7 +181,6 @@ const deleteCardByIdQuery = async(cardId) => {
 
 exports.createCardQuery=createCardQuery
 exports.createSubcardQuery=createSubcardQuery
-exports.getCardsByUserIdQuery=getCardsByUserIdQuery
 exports.getCardByIdQuery=getCardByIdQuery
 exports.deleteCardByIdQuery=deleteCardByIdQuery
 exports.updateCardQuery=updateCardQuery

@@ -1,7 +1,5 @@
 const { gql } = require('apollo-server-express');
-const User = require('../models/user')
-const Card = require('../models/card')
-const Tag = require('../models/tag')
+const client = require('../postgresql/db')
 
 const typeDefs = gql`
   scalar Upload
@@ -95,6 +93,24 @@ const typeDefs = gql`
     description: String!
     creator: User!
     tags: [Tag]
+    subcards: [Subcard]
+  }
+
+  type Subcard {
+    id: ID!
+    term: String!
+    definition: String!
+    image: String
+  }
+
+  type Language {
+    id: ID!
+    name: String!
+  }
+
+  type Country {
+    id: ID!
+    country: String!
   }
 
   type Tag {
