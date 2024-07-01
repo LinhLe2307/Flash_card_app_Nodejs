@@ -7,4 +7,13 @@ const getSingleLanguageQuery = async (languageId) => {
     `, [languageId])
 }
 
+
+const getAllLanguagesQuery = async() => {
+    let query=`
+        SELECT * FROM language;
+    `
+    return await client.query(query)
+}
+
 exports.getSingleLanguageQuery = getSingleLanguageQuery
+exports.getAllLanguagesQuery = getAllLanguagesQuery

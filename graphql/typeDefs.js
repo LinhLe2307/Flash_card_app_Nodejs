@@ -13,7 +13,8 @@ const typeDefs = gql`
   type Query {
     getUsers: [User!]!
     getUserDetail(userId: ID!): User
-    getCountries: [String!]!
+    getCountries: [Country!]!
+    getLanguages: [Language!]!
     getCardsByUserId(
       userId: ID!
     ): User

@@ -7,4 +7,12 @@ const getSingleCountryQuery = async (countryId) => {
     `, [countryId])
 }
 
+const getAllCountriesQuery = async() => {
+    let query=`
+        SELECT * FROM country;
+    `
+    return await client.query(query)
+}
+ 
 exports.getSingleCountryQuery = getSingleCountryQuery
+exports.getAllCountriesQuery = getAllCountriesQuery

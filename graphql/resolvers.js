@@ -4,6 +4,8 @@ const { uploadS3 } = require('../middleware/s3Service')
 const { signup, getUsers, getSingleUser, login, updateUser, deleteUserById } = require('../controllers/creators-controllers');
 const { createCard, getCardById, deleteCardById, updateCard } = require('../controllers/cards-controllers');
 const checkEmailValidation = require('../utils/checkEmailValidation');
+const { getAllCountriesQuery } = require('../models/country');
+const { getAllLanguagesQuery } = require('../models/language');
 require('dotenv').config();
 
 const resolvers = {
@@ -19,8 +21,16 @@ const resolvers = {
       },
       getCountries: async(root, args) => {
         try {
-          const response = await axios.get(`https://countriesnow.space/api/v0.1/countries`)
-          return response.data.data.map(country => country.country)
+          const response = await getAllCountriesQuery()
+          return response.rows
+        } catch(error) {
+          throw new HttpError('Failed to fetch countries');
+        }
+      },
+      getLanguage: async(root, args) => {
+        try {
+          const response = await getAllLanguagesQuery()
+          return response.rows
         } catch(error) {
           throw new HttpError('Failed to fetch countries');
         }
