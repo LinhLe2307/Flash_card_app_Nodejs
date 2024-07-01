@@ -7,12 +7,25 @@ const getSingleCountryQuery = async (countryId) => {
     `, [countryId])
 }
 
-const getAllCountriesQuery = async() => {
+const getAllCountriesAndLanguagesQuery = async() => {
     let query=`
-        SELECT * FROM country;
+        WITH get_countries AS (
+            SELECT JSON_AGG(
+                JSON_BUILD_OBJECT('id', c.country_id, 'country', c.country) 
+            ) AS countries
+            FROM country c
+        ), get_languages AS (
+            SELECT JSON_AGG(
+            JSON_BUILD_OBJECT('id', l.language_id, 'name', l.name)) AS languages
+            FROM language l
+            
+        )
+        SELECT c.countries, l.languages
+        FROM get_countries c
+        CROSS JOIN get_languages l;
     `
     return await client.query(query)
 }
  
 exports.getSingleCountryQuery = getSingleCountryQuery
-exports.getAllCountriesQuery = getAllCountriesQuery
+exports.getAllCountriesAndLanguagesQuery = getAllCountriesAndLanguagesQuery

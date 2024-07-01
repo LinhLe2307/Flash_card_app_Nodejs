@@ -310,7 +310,7 @@ ALTER TABLE public.city_city_id_seq OWNER TO linhle;
 
 CREATE TABLE IF NOT EXISTS public.city (
     city_id integer DEFAULT nextval('public.city_city_id_seq'::regclass) NOT NULL,
-    city character varying(50) NOT NULL,
+    city character varying(50) NOT NULL UNIQUE,
     country_id smallint NOT NULL,
     last_update timestamp without time zone DEFAULT now() NOT NULL
 );
@@ -338,7 +338,7 @@ ALTER TABLE public.country_country_id_seq OWNER TO linhle;
 
 CREATE TABLE IF NOT EXISTS public.country (
     country_id integer DEFAULT nextval('public.country_country_id_seq'::regclass) NOT NULL,
-    country character varying(50) NOT NULL,
+    country character varying(50) NOT NULL UNIQUE,
     last_update timestamp without time zone DEFAULT now() NOT NULL
 );
 
@@ -365,7 +365,7 @@ ALTER TABLE public.language_language_id_seq OWNER TO linhle;
 
 CREATE TABLE IF NOT EXISTS public.language (
     language_id integer DEFAULT nextval('public.language_language_id_seq'::regclass) NOT NULL,
-    name character(20) NOT NULL,
+    name character(20) NOT NULL UNIQUE,
     last_update timestamp without time zone DEFAULT now() NOT NULL
 );
 

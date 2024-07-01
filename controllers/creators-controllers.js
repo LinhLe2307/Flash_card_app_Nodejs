@@ -1,4 +1,5 @@
 const { getUserByEmail, createCustomerQuery, updateCustomerQuery, getCardsAndInfoByUserIdQuery, deleteUserQuery, allCreatorsQuery, loginQuery } = require('../models/creator')
+const { deleteS3 } = require('../middleware/s3Service')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const HttpError = require('../models/http-error')
@@ -66,7 +67,7 @@ const updateUser = async(userId, firstName, lastName, imagePath, phone, countryI
     let createdUser
     try {
         createdUser = await updateCustomerQuery(x, linkedin, instagram, github, website,
-            firstName, lastName, 110, 7, userImage, aboutMe, phone, userId)
+            firstName, lastName, countryId, languageId, userImage, aboutMe, phone, userId)
     } catch(err) {
         throw new HttpError('Something went wrong, could not update user', 500)
     }
