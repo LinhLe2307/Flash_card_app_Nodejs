@@ -6,36 +6,46 @@
 -- the extracted data files.
 --
 --
--- postgresQL database dump
+-- linhleQL database dump
 --
 
 -- Dumped from database version 11.3
 -- Dumped by pg_dump version 11.2
 
-DROP DATABASE flash_card_app_nodejs;
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET row_security = off;
+
+DROP DATABASE pernflashcard;
 --
--- Name: dvdrental; Type: DATABASE; Schema: -; Owner: postgres
+-- Name: dvdrental; Type: DATABASE; Schema: -; Owner: linhle
 --
 
-CREATE DATABASE flash_card_app_nodejs WITH TEMPLATE = template0 ENCODING = 'UTF8';
+CREATE DATABASE pernflashcard WITH TEMPLATE = template0 ENCODING = 'UTF8';
 
 
-ALTER DATABASE flash_card_app_nodejs OWNER TO postgres;
+ALTER DATABASE pernflashcard OWNER TO linhle;
 
-\connect flash_card_app_nodejs
+\connect pernflashcard
 
 --
--- Name: year; Type: DOMAIN; Schema: public; Owner: postgres
+-- Name: year; Type: DOMAIN; Schema: public; Owner: linhle
 --
 
 CREATE DOMAIN public.year AS integer
 	CONSTRAINT year_check CHECK (((VALUE >= 1901) AND (VALUE <= 2155)));
 
 
-ALTER DOMAIN public.year OWNER TO postgres;
+ALTER DOMAIN public.year OWNER TO linhle;
 
 --
--- Name: _group_concat(text, text); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: _group_concat(text, text); Type: FUNCTION; Schema: public; Owner: linhle
 --
 
 CREATE FUNCTION public._group_concat(text, text) RETURNS text
@@ -49,10 +59,10 @@ END
 $_$;
 
 
-ALTER FUNCTION public._group_concat(text, text) OWNER TO postgres;
+ALTER FUNCTION public._group_concat(text, text) OWNER TO linhle;
 
 --
--- Name: last_day(timestamp without time zone); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: last_day(timestamp without time zone); Type: FUNCTION; Schema: public; Owner: linhle
 --
 
 CREATE FUNCTION public.last_day(timestamp without time zone) RETURNS date
@@ -67,10 +77,10 @@ CREATE FUNCTION public.last_day(timestamp without time zone) RETURNS date
 $_$;
 
 
-ALTER FUNCTION public.last_day(timestamp without time zone) OWNER TO postgres;
+ALTER FUNCTION public.last_day(timestamp without time zone) OWNER TO linhle;
 
 --
--- Name: last_updated(); Type: FUNCTION; Schema: public; Owner: postgres
+-- Name: last_updated(); Type: FUNCTION; Schema: public; Owner: linhle
 --
 
 CREATE FUNCTION public.last_updated() RETURNS trigger
@@ -82,10 +92,10 @@ BEGIN
 END $$;
 
 
-ALTER FUNCTION public.last_updated() OWNER TO postgres;
+ALTER FUNCTION public.last_updated() OWNER TO linhle;
 
 --
--- Name: creator_creator_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: creator_creator_id_seq; Type: SEQUENCE; Schema: public; Owner: linhle
 --
 
 CREATE SEQUENCE public.creator_creator_id_seq
@@ -96,14 +106,14 @@ CREATE SEQUENCE public.creator_creator_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.creator_creator_id_seq OWNER TO postgres;
+ALTER TABLE public.creator_creator_id_seq OWNER TO linhle;
 
 SET default_tablespace = '';
 
 SET default_with_oids = false;
 
 --
--- Name: creator; Type: TABLE; Schema: public; Owner: postgres
+-- Name: creator; Type: TABLE; Schema: public; Owner: linhle
 --
 
 CREATE TABLE IF NOT EXISTS public.creator (
@@ -125,10 +135,10 @@ CREATE TABLE IF NOT EXISTS public.creator (
 );
 
 
-ALTER TABLE public.creator OWNER TO postgres;
+ALTER TABLE public.creator OWNER TO linhle;
 
 --
--- Name: group_concat(text); Type: AGGREGATE; Schema: public; Owner: postgres
+-- Name: group_concat(text); Type: AGGREGATE; Schema: public; Owner: linhle
 --
 
 CREATE AGGREGATE public.group_concat(text) (
@@ -137,10 +147,10 @@ CREATE AGGREGATE public.group_concat(text) (
 );
 
 
-ALTER AGGREGATE public.group_concat(text) OWNER TO postgres;
+ALTER AGGREGATE public.group_concat(text) OWNER TO linhle;
 
 --
--- Name: media_media_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: media_media_id_seq; Type: SEQUENCE; Schema: public; Owner: linhle
 --
 
 CREATE SEQUENCE public.media_media_id_seq
@@ -151,10 +161,10 @@ CREATE SEQUENCE public.media_media_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.media_media_id_seq OWNER TO postgres;
+ALTER TABLE public.media_media_id_seq OWNER TO linhle;
 
 --
--- Name: media; Type: TABLE; Schema: public; Owner: postgres
+-- Name: media; Type: TABLE; Schema: public; Owner: linhle
 --
 
 CREATE TABLE IF NOT EXISTS public.media (
@@ -168,10 +178,10 @@ CREATE TABLE IF NOT EXISTS public.media (
 );
 
 
-ALTER TABLE public.media OWNER TO postgres;
+ALTER TABLE public.media OWNER TO linhle;
 
 --
--- Name: flashcard_flashcard_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: flashcard_flashcard_id_seq; Type: SEQUENCE; Schema: public; Owner: linhle
 --
 
 CREATE SEQUENCE public.flashcard_flashcard_id_seq
@@ -182,10 +192,10 @@ CREATE SEQUENCE public.flashcard_flashcard_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.flashcard_flashcard_id_seq OWNER TO postgres;
+ALTER TABLE public.flashcard_flashcard_id_seq OWNER TO linhle;
 
 --
--- Name: actor; Type: TABLE; Schema: public; Owner: postgres
+-- Name: actor; Type: TABLE; Schema: public; Owner: linhle
 --
 
 CREATE TABLE IF NOT EXISTS public.flashcard (
@@ -197,10 +207,10 @@ CREATE TABLE IF NOT EXISTS public.flashcard (
 );
 
 
-ALTER TABLE public.flashcard OWNER TO postgres;
+ALTER TABLE public.flashcard OWNER TO linhle;
 
 --
--- Name: subcard_subcard_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: subcard_subcard_id_seq; Type: SEQUENCE; Schema: public; Owner: linhle
 --
 
 CREATE SEQUENCE public.subcard_subcard_id_seq
@@ -211,10 +221,10 @@ CREATE SEQUENCE public.subcard_subcard_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.subcard_subcard_id_seq OWNER TO postgres;
+ALTER TABLE public.subcard_subcard_id_seq OWNER TO linhle;
 
 --
--- Name: subcard; Type: TABLE; Schema: public; Owner: postgres
+-- Name: subcard; Type: TABLE; Schema: public; Owner: linhle
 --
 
 CREATE TABLE IF NOT EXISTS public.subcard (
@@ -226,10 +236,10 @@ CREATE TABLE IF NOT EXISTS public.subcard (
 );
 
 
-ALTER TABLE public.subcard OWNER TO postgres;
+ALTER TABLE public.subcard OWNER TO linhle;
 
 --
--- Name: tag_tag_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: tag_tag_id_seq; Type: SEQUENCE; Schema: public; Owner: linhle
 --
 
 CREATE SEQUENCE public.tag_tag_id_seq
@@ -240,10 +250,10 @@ CREATE SEQUENCE public.tag_tag_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.tag_tag_id_seq OWNER TO postgres;
+ALTER TABLE public.tag_tag_id_seq OWNER TO linhle;
 
 --
--- Name: tag; Type: TABLE; Schema: public; Owner: postgres
+-- Name: tag; Type: TABLE; Schema: public; Owner: linhle
 --
 
 CREATE TABLE IF NOT EXISTS public.tag (
@@ -253,10 +263,10 @@ CREATE TABLE IF NOT EXISTS public.tag (
 );
 
 
-ALTER TABLE public.tag OWNER TO postgres;
+ALTER TABLE public.tag OWNER TO linhle;
 
 --
--- Name: city_city_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: city_city_id_seq; Type: SEQUENCE; Schema: public; Owner: linhle
 --
 
 CREATE SEQUENCE public.city_city_id_seq
@@ -267,10 +277,10 @@ CREATE SEQUENCE public.city_city_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.city_city_id_seq OWNER TO postgres;
+ALTER TABLE public.city_city_id_seq OWNER TO linhle;
 
 --
--- Name: city; Type: TABLE; Schema: public; Owner: postgres
+-- Name: city; Type: TABLE; Schema: public; Owner: linhle
 --
 
 CREATE TABLE IF NOT EXISTS public.city (
@@ -281,10 +291,10 @@ CREATE TABLE IF NOT EXISTS public.city (
 );
 
 
-ALTER TABLE public.city OWNER TO postgres;
+ALTER TABLE public.city OWNER TO linhle;
 
 --
--- Name: country_country_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: country_country_id_seq; Type: SEQUENCE; Schema: public; Owner: linhle
 --
 
 CREATE SEQUENCE public.country_country_id_seq
@@ -295,10 +305,10 @@ CREATE SEQUENCE public.country_country_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.country_country_id_seq OWNER TO postgres;
+ALTER TABLE public.country_country_id_seq OWNER TO linhle;
 
 --
--- Name: country; Type: TABLE; Schema: public; Owner: postgres
+-- Name: country; Type: TABLE; Schema: public; Owner: linhle
 --
 
 CREATE TABLE IF NOT EXISTS public.country (
@@ -308,10 +318,10 @@ CREATE TABLE IF NOT EXISTS public.country (
 );
 
 
-ALTER TABLE public.country OWNER TO postgres;
+ALTER TABLE public.country OWNER TO linhle;
 
 --
--- Name: language_language_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: language_language_id_seq; Type: SEQUENCE; Schema: public; Owner: linhle
 --
 
 CREATE SEQUENCE public.language_language_id_seq
@@ -322,10 +332,10 @@ CREATE SEQUENCE public.language_language_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.language_language_id_seq OWNER TO postgres;
+ALTER TABLE public.language_language_id_seq OWNER TO linhle;
 
 --
--- Name: language; Type: TABLE; Schema: public; Owner: postgres
+-- Name: language; Type: TABLE; Schema: public; Owner: linhle
 --
 
 CREATE TABLE IF NOT EXISTS public.language (
@@ -335,10 +345,10 @@ CREATE TABLE IF NOT EXISTS public.language (
 );
 
 
-ALTER TABLE public.language OWNER TO postgres;
+ALTER TABLE public.language OWNER TO linhle;
 
 --
--- Name: flashcard_tag; Type: TABLE; Schema: public; Owner: postgres
+-- Name: flashcard_tag; Type: TABLE; Schema: public; Owner: linhle
 --
 
 CREATE TABLE IF NOT EXISTS public.flashcard_tag (
@@ -346,64 +356,64 @@ CREATE TABLE IF NOT EXISTS public.flashcard_tag (
     tag_id smallint NOT NULL
 );
 
-ALTER TABLE public.flashcard_tag OWNER TO postgres;
+ALTER TABLE public.flashcard_tag OWNER TO linhle;
 
 
 --
--- Name: creator_creator_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: creator_creator_id_seq; Type: SEQUENCE SET; Schema: public; Owner: linhle
 --
 
 SELECT pg_catalog.setval('public.creator_creator_id_seq', 200, true);
 
 
 --
--- Name: media_media_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: media_media_id_seq; Type: SEQUENCE SET; Schema: public; Owner: linhle
 --
 
-SELECT pg_catalog.setval('public.media_media_id_seq', 600, true);
+SELECT pg_catalog.setval('public.media_media_id_seq', 605, true);
 
 
 --
--- Name: flashcard_flashcard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: flashcard_flashcard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: linhle
 --
 
 SELECT pg_catalog.setval('public.flashcard_flashcard_id_seq', 605, true);
 
 --
--- Name: subcard_subcard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: subcard_subcard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: linhle
 --
 
 SELECT pg_catalog.setval('public.subcard_subcard_id_seq', 605, true);
 
 
 --
--- Name: city_city_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: city_city_id_seq; Type: SEQUENCE SET; Schema: public; Owner: linhle
 --
 
 SELECT pg_catalog.setval('public.city_city_id_seq', 600, true);
 
 
 --
--- Name: country_country_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: country_country_id_seq; Type: SEQUENCE SET; Schema: public; Owner: linhle
 --
 
-SELECT pg_catalog.setval('public.country_country_id_seq', 110, true);
+SELECT pg_catalog.setval('public.country_country_id_seq', 109, true);
 
 
 --
--- Name: tag_tag_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: tag_tag_id_seq; Type: SEQUENCE SET; Schema: public; Owner: linhle
 --
 
 SELECT pg_catalog.setval('public.tag_tag_id_seq', 109, true);
 
 --
--- Name: language_language_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: language_language_id_seq; Type: SEQUENCE SET; Schema: public; Owner: linhle
 --
 
 SELECT pg_catalog.setval('public.language_language_id_seq', 109, true);
 
 --
--- Name: creator creator_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: creator creator_pkey; Type: CONSTRAINT; Schema: public; Owner: linhle
 --
 
 ALTER TABLE ONLY public.creator
@@ -411,21 +421,21 @@ ALTER TABLE ONLY public.creator
 
 
 --
--- Name: city city_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: city city_pkey; Type: CONSTRAINT; Schema: public; Owner: linhle
 --
 
 ALTER TABLE ONLY public.city
     ADD CONSTRAINT city_pkey PRIMARY KEY (city_id);
 
 --
--- Name: media media_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: media media_pkey; Type: CONSTRAINT; Schema: public; Owner: linhle
 --
 ALTER TABLE ONLY public.media
     ADD CONSTRAINT media_pkey PRIMARY KEY (media_id);
 
 
 --
--- Name: country country_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: country country_pkey; Type: CONSTRAINT; Schema: public; Owner: linhle
 --
 
 ALTER TABLE ONLY public.country
@@ -433,35 +443,35 @@ ALTER TABLE ONLY public.country
 
 
 --
--- Name: flashcard flashcard_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: flashcard flashcard_pkey; Type: CONSTRAINT; Schema: public; Owner: linhle
 --
 
 ALTER TABLE ONLY public.flashcard
     ADD CONSTRAINT flashcard_pkey PRIMARY KEY (flashcard_id);
 
 --
--- Name: subcard subcard_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: subcard subcard_pkey; Type: CONSTRAINT; Schema: public; Owner: linhle
 --
 
 ALTER TABLE ONLY public.subcard
     ADD CONSTRAINT subcard_pkey PRIMARY KEY (subcard_id);
 
 --
--- Name: tag tag_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: tag tag_pkey; Type: CONSTRAINT; Schema: public; Owner: linhle
 --
 
 ALTER TABLE ONLY public.tag
     ADD CONSTRAINT tag_pkey PRIMARY KEY (tag_id);
 
 --
--- Name: flashcard_tag flashcard_tag_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: flashcard_tag flashcard_tag_pkey; Type: CONSTRAINT; Schema: public; Owner: linhle
 --
 
 ALTER TABLE ONLY public.flashcard_tag
     ADD CONSTRAINT flashcard_tag_pkey PRIMARY KEY (flashcard_id, tag_id);
 
 --
--- Name: language language_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: language language_pkey; Type: CONSTRAINT; Schema: public; Owner: linhle
 --
 
 ALTER TABLE ONLY public.language
@@ -469,107 +479,107 @@ ALTER TABLE ONLY public.language
 
 
 --
--- Name: idx_creator_email; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_creator_email; Type: INDEX; Schema: public; Owner: linhle
 --
 
 CREATE INDEX idx_creator_email ON public.creator USING btree (email);
 
 
 --
--- Name: idx_fk_media_id; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_fk_media_id; Type: INDEX; Schema: public; Owner: linhle
 --
 
 CREATE INDEX idx_fk_media_id ON public.media USING btree (media_id);
 
 --
--- Name: idx_fk_flashcard_id; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_fk_flashcard_id; Type: INDEX; Schema: public; Owner: linhle
 --
 
 CREATE INDEX idx_fk_flashcard_id ON public.flashcard USING btree (flashcard_id);
 
 --
--- Name: idx_fk_subcard_id; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_fk_subcard_id; Type: INDEX; Schema: public; Owner: linhle
 --
 
 CREATE INDEX idx_fk_subcard_id ON public.subcard USING btree (subcard_id);
 
 
 --
--- Name: idx_fk_city_id; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_fk_city_id; Type: INDEX; Schema: public; Owner: linhle
 --
 
 CREATE INDEX idx_fk_city_id ON public.city USING btree (city_id);
 
 
 --
--- Name: idx_fk_country_id; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_fk_country_id; Type: INDEX; Schema: public; Owner: linhle
 --
 
 CREATE INDEX idx_fk_country_id ON public.country USING btree (country_id);
 
 
 --
--- Name: idx_fk_tag_id; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_fk_tag_id; Type: INDEX; Schema: public; Owner: linhle
 --
 
 CREATE INDEX idx_fk_tag_id ON public.tag USING btree (tag_id);
 
 --
--- Name: idx_fk_language_id; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_fk_language_id; Type: INDEX; Schema: public; Owner: linhle
 --
 
 CREATE INDEX idx_fk_language_id ON public.language USING btree (language_id);
 
 --
--- Name: creator last_updated; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: creator last_updated; Type: TRIGGER; Schema: public; Owner: linhle
 --
 
 CREATE TRIGGER last_updated BEFORE UPDATE ON public.creator FOR EACH ROW EXECUTE PROCEDURE public.last_updated();
 
 
 --
--- Name: flashcard last_updated; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: flashcard last_updated; Type: TRIGGER; Schema: public; Owner: linhle
 --
 
 CREATE TRIGGER last_updated BEFORE UPDATE ON public.flashcard FOR EACH ROW EXECUTE PROCEDURE public.last_updated();
 
 --
--- Name: subcard last_updated; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: subcard last_updated; Type: TRIGGER; Schema: public; Owner: linhle
 --
 
 CREATE TRIGGER last_updated BEFORE UPDATE ON public.subcard FOR EACH ROW EXECUTE PROCEDURE public.last_updated();
 
 
 --
--- Name: tag last_updated; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: tag last_updated; Type: TRIGGER; Schema: public; Owner: linhle
 --
 
 CREATE TRIGGER last_updated BEFORE UPDATE ON public.tag FOR EACH ROW EXECUTE PROCEDURE public.last_updated();
 
 
 --
--- Name: city last_updated; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: city last_updated; Type: TRIGGER; Schema: public; Owner: linhle
 --
 
 CREATE TRIGGER last_updated BEFORE UPDATE ON public.city FOR EACH ROW EXECUTE PROCEDURE public.last_updated();
 
 
 --
--- Name: country last_updated; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: country last_updated; Type: TRIGGER; Schema: public; Owner: linhle
 --
 
 CREATE TRIGGER last_updated BEFORE UPDATE ON public.country FOR EACH ROW EXECUTE PROCEDURE public.last_updated();
 
 
 --
--- Name: language last_updated; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: language last_updated; Type: TRIGGER; Schema: public; Owner: linhle
 --
 
 CREATE TRIGGER last_updated BEFORE UPDATE ON public.language FOR EACH ROW EXECUTE PROCEDURE public.last_updated();
 
 
 --
--- Name: media last_updated; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: media last_updated; Type: TRIGGER; Schema: public; Owner: linhle
 --
 
 CREATE TRIGGER last_updated BEFORE UPDATE ON public.media FOR EACH ROW EXECUTE PROCEDURE public.last_updated();
@@ -1180,6 +1190,6 @@ VALUES
 
 
 --
--- postgresQL database dump complete
+-- linhleQL database dump complete
 --
 

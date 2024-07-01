@@ -1,4 +1,4 @@
-# fly.toml app configuration file generated for flash-card-app-nodejs on 2024-05-28T00:43:09+03:00
+# fly.toml app configuration file generated for flash-card-app-nodejs on 2024-07-01T14:43:13+03:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
@@ -7,6 +7,11 @@ app = 'flash-card-app-nodejs'
 primary_region = 'arn'
 
 [build]
+
+[env]
+  HOST = '0.0.0.0'
+  NODE_ENV = 'production'
+  PORT = '5068'
 
 [http_service]
   internal_port = 5068

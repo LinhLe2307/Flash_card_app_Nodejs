@@ -23,6 +23,7 @@ const resolvers = {
           const response = await getAllCountriesAndLanguagesQuery()
           return response.rows[0]
         } catch(error) {
+          console.log(error)
           throw new HttpError('Failed to fetch countries');
         }
       },
