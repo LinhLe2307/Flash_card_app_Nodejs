@@ -27,7 +27,7 @@ const resolvers = {
           throw new HttpError('Failed to fetch countries');
         }
       },
-      getLanguage: async(root, args) => {
+      getLanguages: async(root, args) => {
         try {
           const response = await getAllLanguagesQuery()
           return response.rows
@@ -70,7 +70,7 @@ const resolvers = {
             imageUrl = image.url
           }
           return updateUser(
-            userId, firstName, lastName, imageUrl, phone, countryId, languageId, aboutMe, x, linkedIn, instagram, github, website
+            userId, firstName, lastName, imageUrl, phone, 110, 7, aboutMe, x, linkedIn, instagram, github, website
           )
       },
       createCard: async(root, args) => {
