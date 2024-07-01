@@ -4,8 +4,7 @@ const { uploadS3 } = require('../middleware/s3Service')
 const { signup, getUsers, getSingleUser, login, updateUser, deleteUserById } = require('../controllers/creators-controllers');
 const { createCard, getCardById, deleteCardById, updateCard } = require('../controllers/cards-controllers');
 const checkEmailValidation = require('../utils/checkEmailValidation');
-const { getAllCountriesQuery } = require('../models/country');
-const { getAllLanguagesQuery } = require('../models/language');
+const { getAllCountriesAndLanguagesQuery } = require('../models/country');
 require('dotenv').config();
 
 const resolvers = {
@@ -19,18 +18,10 @@ const resolvers = {
       getUserDetail: async(root, args) => {
         return await getSingleUser(args.userId)
       },
-      getCountries: async(root, args) => {
+      getCountriesAndLanguages: async(root, args) => {
         try {
-          const response = await getAllCountriesQuery()
-          return response.rows
-        } catch(error) {
-          throw new HttpError('Failed to fetch countries');
-        }
-      },
-      getLanguages: async(root, args) => {
-        try {
-          const response = await getAllLanguagesQuery()
-          return response.rows
+          const response = await getAllCountriesAndLanguagesQuery()
+          return response.rows[0]
         } catch(error) {
           throw new HttpError('Failed to fetch countries');
         }
@@ -48,19 +39,19 @@ const resolvers = {
       },
   
       signUpAuth: async(root, { firstName, lastName, image, 
-        phone, countryId, languageId, email, password, aboutMe, x,
+        phone, country, language, email, password, aboutMe, x,
         linkedIn, instagram, github, website }) => {
         const isValidEmail = checkEmailValidation(email)
         if (isValidEmail) {
           const result = await uploadS3(image)
-          return signup(firstName, lastName, result.Location, phone, 110, 7, email, password, aboutMe, x,
+          return signup(firstName, lastName, result.Location, phone, country, language, email, password, aboutMe, x,
           linkedIn, instagram, github, website)
         } else {
           throw new HttpError("Email not in proper format")
         }
       },
             
-      updateUser: async(root, {userId, firstName, lastName, image, phone, countryId, languageId, aboutMe, x, linkedIn,
+      updateUser: async(root, {userId, firstName, lastName, image, phone, country, language, aboutMe, x, linkedIn,
         instagram, github, website}) => {
           let imageUrl
           if (image.file) {
@@ -70,7 +61,8 @@ const resolvers = {
             imageUrl = image.url
           }
           return updateUser(
-            userId, firstName, lastName, imageUrl, phone, 110, 7, aboutMe, x, linkedIn, instagram, github, website
+            userId, firstName, lastName, imageUrl, phone, country, language, aboutMe, x, linkedIn,
+            instagram, github, website
           )
       },
       createCard: async(root, args) => {

@@ -10,11 +10,15 @@ const typeDefs = gql`
     file: Upload
   }
 
+  type CountriesLanguages {
+    countries: [Country]
+    languages: [Language]
+  }
+
   type Query {
     getUsers: [User!]!
     getUserDetail(userId: ID!): User
-    getCountries: [Country!]!
-    getLanguages: [Language!]!
+    getCountriesAndLanguages: CountriesLanguages!
     getCardsByUserId(
       userId: ID!
     ): User

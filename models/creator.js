@@ -150,6 +150,8 @@ const getUserByEmail = async (email) => {
 const createCustomerQuery = async(x, linkedin, instagram, github, website,
     firstName, lastName, email, countryId, languageId, password, image, aboutMe, phone
 ) => {
+    let numberCountryId = +countryId
+    let numberLanguageId = +languageId
     return await client.query(`
         WITH insert_media AS (
             INSERT INTO media (x, linkedin, instagram, github, website)
@@ -161,13 +163,11 @@ const createCustomerQuery = async(x, linkedin, instagram, github, website,
             SELECT $6, $7, $8, $9, $10, i.media_id, $11, $12, $13, $14
             FROM insert_media i
 	    RETURNING *;`, [x, linkedin, instagram, github, website,
-            firstName, lastName, email, countryId, languageId, password, image, aboutMe, phone])
+            firstName, lastName, email, numberCountryId, numberLanguageId, password, image, aboutMe, phone])
 }
 
 const updateCustomerQuery = async (x, linkedin, instagram, github, website,
     firstName, lastName, countryId, languageId, image, aboutMe, phone, userId) => {
-    console.log(x, linkedin, instagram, github, website,
-        firstName, lastName, countryId, languageId, image, aboutMe, phone, userId)
         let query = `
         WITH update_media AS (
             UPDATE media m
@@ -184,8 +184,8 @@ const updateCustomerQuery = async (x, linkedin, instagram, github, website,
         UPDATE creator
         SET first_name='${firstName}',
             last_name='${lastName}',
-            country_id='${countryId}',
-            language_id='${languageId}',
+            country_id=${countryId},
+            language_id=${languageId},
             image='${image}',
             about_me='${aboutMe}',
             phone='${phone}',
