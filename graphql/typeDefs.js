@@ -72,6 +72,7 @@ const typeDefs = gql`
     userId: ID!
     email: String!
     token: String!
+    image: String!
   }
 
   type User {

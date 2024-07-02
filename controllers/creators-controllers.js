@@ -159,7 +159,11 @@ const signup = async (
       )
     }
 
-    return({ userId: createdUser.rows[0].creator_id, email: createdUser.rows[0].email, token: token });
+    return({ userId: createdUser.rows[0].creator_id, 
+        email: createdUser.rows[0].email, 
+        token: token,
+        image: createdUser.rows[0].image
+    });
 }
 
 const login = async(email, password) => {
@@ -218,7 +222,8 @@ const login = async(email, password) => {
     return({
         userId: existingUser.rows[0].creator_id, 
         email: existingUser.rows[0].email,
-        token: token
+        token: token,
+        image: existingUser.rows[0].image
     });
 }
 
