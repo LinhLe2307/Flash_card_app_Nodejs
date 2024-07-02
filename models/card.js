@@ -48,7 +48,11 @@ const updateCardQuery = async(title, description, tagIds, existingSubcards, rest
                 SET flashcard_id = EXCLUDED.flashcard_id,
                     tag_id = EXCLUDED.tag_id
             RETURNING flashcard_id, tag_id
-        )
+        ), delete_flashcard_tag AS (
+			DELETE FROM flashcard_tag
+			WHERE flashcard_id = ${cardId}
+			  AND tag_id NOT IN (SELECT unnest(ARRAY[${tagIds}]::smallint[]))
+		)
 
         UPDATE flashcard
         SET subcard_id = (

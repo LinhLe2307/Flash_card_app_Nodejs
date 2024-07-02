@@ -6,11 +6,11 @@ const getSingleTagByNameQuery = async(tagNames) => {
 
 const createTagQuery = async(tagNames) => {
      // Convert array elements to formatted strings
-    const inArray = tagNames.map(element => `'${element}'`);
-
+    const inArray = tagNames.map(element => `'${element.toLowerCase()}'`);
+    
     // Join formatted elements into a single string
     const inArrayFormattedString = `(${inArray.join(',')})`;
-    const formattedTagsValues = tagNames.map(tag => `('${tag}')`).join(',');
+    const formattedTagsValues = tagNames.map(tag => `('${tag.toLowerCase()}')`).join(',');
     const query = `
         WITH ins AS (
             INSERT INTO tag (name)
