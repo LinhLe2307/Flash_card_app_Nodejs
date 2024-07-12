@@ -155,7 +155,9 @@ const createCustomerQuery = async(x, linkedin, instagram, github, website,
     return await client.query(`
         WITH insert_media AS (
             INSERT INTO media (x, linkedin, instagram, github, website)
-			VALUES($1, $2, $3, $4, $5)
+			VALUES(
+                COALESCE($1, ''), COALESCE($2, ''), COALESCE($3, ''),
+                COALESCE($4, ''), COALESCE($5, ''))
 			RETURNING media_id
         )
 
