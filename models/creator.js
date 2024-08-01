@@ -142,7 +142,7 @@ const getCardsAndInfoByUserIdQuery = async (userId) => {
 
 const getUserByEmail = async (email) => {
     return await client.query(`
-        SELECT * FROM creator c
+        SELECT c.creator_id "userId" FROM creator c
         WHERE c.email = $1;
     `, [email])
 }
@@ -205,9 +205,20 @@ const deleteUserQuery = async(userId) => {
     return await client.query(query)
 }
 
+const forgotPasswordQuery = async(password, userId) => {
+    let query = `
+        UPDATE creator
+        SET password = ${password}
+        WHERE creator_id = ${userId}
+        RETURNING *;
+    `
+    return await client.query(query)
+}
+
 exports.allCreatorsQuery = allCreatorsQuery
 exports.createCustomerQuery = createCustomerQuery
 exports.updateCustomerQuery = updateCustomerQuery
+exports.forgotPasswordQuery = forgotPasswordQuery
 exports.getUserByEmail = getUserByEmail
 exports.getCardsAndInfoByUserIdQuery = getCardsAndInfoByUserIdQuery
 exports.deleteUserQuery = deleteUserQuery
