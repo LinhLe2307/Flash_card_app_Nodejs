@@ -142,7 +142,7 @@ const getCardsAndInfoByUserIdQuery = async (userId) => {
 
 const getUserByEmail = async (email) => {
     return await client.query(`
-        SELECT c.creator_id "userId" FROM creator c
+        SELECT c.creator_id "userId", c.password, c.email, c.image FROM creator c
         WHERE c.email = $1;
     `, [email])
 }
@@ -208,7 +208,7 @@ const deleteUserQuery = async(userId) => {
 const forgotPasswordQuery = async(password, userId) => {
     let query = `
         UPDATE creator
-        SET password = ${password}
+        SET password = '${password}'
         WHERE creator_id = ${userId}
         RETURNING *;
     `

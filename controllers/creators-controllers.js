@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken')
 const HttpError = require('../models/http-error')
 require('dotenv').config()
 
-const checkValidPassword = async(password) => {
+const checkValidPassword = async(password, existingUser) => {
     let isValidPassword = false;
     try {
       isValidPassword = await bcrypt.compare(password, existingUser.rows[0].password);
@@ -221,13 +221,13 @@ const login = async(email, password) => {
       );
     }
   
-    await checkValidPassword(password)
+    await checkValidPassword(password, existingUser)
 
     let token;
     try {
       token = jwt.sign(
         { 
-            userId: existingUser.rows[0].creator_id, 
+            userId: existingUser.rows[0].userId, 
             email: existingUser.rows[0].email 
         },
         process.env.TOKEN_KEY,
@@ -241,7 +241,7 @@ const login = async(email, password) => {
     }
   
     return({
-        userId: existingUser.rows[0].creator_id, 
+        userId: existingUser.rows[0].userId, 
         email: existingUser.rows[0].email,
         token: token,
         image: existingUser.rows[0].image
@@ -265,6 +265,8 @@ const forgotPassword = async (password, userId) => {
     } catch(err) {
         throw new HttpError('Update password failed, please try again', 404)
     }
+    
+    return 'Update password sucessfully'
 }
 
 exports.getUsers = getUsers
