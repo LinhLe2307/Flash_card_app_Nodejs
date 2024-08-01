@@ -1,10 +1,11 @@
 const axios = require('axios')
 const HttpError = require('../models/http-error');
 const { uploadS3 } = require('../middleware/s3Service')
-const { signup, getUsers, getSingleUser, login, updateUser, deleteUserById } = require('../controllers/creators-controllers');
+const { signup, getUsers, getSingleUser, login, updateUser, deleteUserById, getSingleUserByEmail, forgotPassword } = require('../controllers/creators-controllers');
 const { createCard, getCardById, deleteCardById, updateCard } = require('../controllers/cards-controllers');
 const checkEmailValidation = require('../utils/checkEmailValidation');
 const { getAllCountriesAndLanguagesQuery } = require('../models/country');
+const { sendEmail } = require('../middleware/send-email');
 require('dotenv').config();
 
 const resolvers = {
@@ -33,6 +34,12 @@ const resolvers = {
       getCardById: async(root, args) => {
         return await getCardById(args.cardId)
       },
+      sendEmail: async(root, args) => {
+        const {recipient_email, OTP} = args
+        return sendEmail(recipient_email, OTP)
+          .then(response => response.message)
+          .catch(error => error.message)
+      }
     },
     Mutation: {
       loginAuth: async(root, args) => {
@@ -77,7 +84,13 @@ const resolvers = {
       },
       deleteCard: async(root, args) => {
         return deleteCardById(args.cardId, args.userId)
-      } 
+      },
+      getSingleUserByEmail: async(root, args) => {
+        return getSingleUserByEmail(args.email)
+      },
+      forgotPassword: async(root, args) => {
+        return forgotPassword(args.password, args.userId)
+      }
     }
   };
 

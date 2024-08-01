@@ -23,6 +23,7 @@ const typeDefs = gql`
       userId: ID!
     ): User
     getCardById(cardId: ID!): JSON!
+    sendEmail(recipient_email: String!, OTP: String!): String!
   }
 
   type Mutation {
@@ -64,6 +65,11 @@ const typeDefs = gql`
     updateCard(input: JSON!): JSON!
     deleteCard(
       cardId: ID!
+      userId: ID!
+    ): String!
+    getSingleUserByEmail(email: String!): JSON!
+    forgotPassword(
+      password: String!
       userId: ID!
     ): String!
   }

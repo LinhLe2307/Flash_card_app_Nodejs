@@ -2,7 +2,7 @@ const { ApolloServer } = require('apollo-server-express');
 const express = require('express');
 const { graphqlUploadExpress } = require('graphql-upload');
 const cors = require('cors');
-const { typeDefs, resolvers } = require('./graphql')
+const { typeDefs, resolvers } = require('./graphql');
 const client = require('./postgresql/db')
 require('dotenv').config(); // Load environment variables from .env file
 

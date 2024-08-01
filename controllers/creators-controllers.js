@@ -1,10 +1,30 @@
-const { getUserByEmail, createCustomerQuery, updateCustomerQuery, getCardsAndInfoByUserIdQuery, deleteUserQuery, allCreatorsQuery, loginQuery } = require('../models/creator')
+const { getUserByEmail, createCustomerQuery, updateCustomerQuery, getCardsAndInfoByUserIdQuery, deleteUserQuery, allCreatorsQuery, loginQuery, forgotPasswordQuery } = require('../models/creator')
 const { deleteS3 } = require('../middleware/s3Service')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const HttpError = require('../models/http-error')
 require('dotenv').config()
 
+const checkValidPassword = async(password, existingUser) => {
+    let isValidPassword = false;
+    try {
+      isValidPassword = await bcrypt.compare(password, existingUser.rows[0].password);
+    } catch (err) {
+      throw new HttpError(
+        'Could not log you in, please check your credentials and try again.',
+        500
+      );
+    }
+  
+    if (!isValidPassword) {
+      throw new HttpError(
+        'Invalid credentials, could not log you in.',
+        401
+      );
+    }
+
+    return isValidPassword
+}
 
 const getUsers = async() => {
     let users
@@ -33,6 +53,22 @@ const getSingleUser = async(userId) => {
     }
     return user.rows[0]
 }
+
+const getSingleUserByEmail = async(email) => {
+    let user;
+    try {
+        user = await getUserByEmail(email)
+    } catch(err) {
+        throw new HttpError(
+            'Fetching user failed, please try again later'
+        )
+    }
+
+    if (!user.rows.length) {
+        throw new HttpError('Could not find user for the provided email.', 404)
+    }
+    return user.rows[0]
+} 
 
 const updateUser = async(userId, firstName, lastName, imagePath, phone, countryId, languageId, aboutMe, x, linkedin, instagram, github, website) => {
   let user
@@ -185,28 +221,13 @@ const login = async(email, password) => {
       );
     }
   
-    let isValidPassword = false;
-    try {
-      isValidPassword = await bcrypt.compare(password, existingUser.rows[0].password);
-    } catch (err) {
-      throw new HttpError(
-        'Could not log you in, please check your credentials and try again.',
-        500
-      );
-    }
-  
-    if (!isValidPassword) {
-      throw new HttpError(
-        'Invalid credentials, could not log you in.',
-        401
-      );
-    }
-  
+    await checkValidPassword(password, existingUser)
+
     let token;
     try {
       token = jwt.sign(
         { 
-            userId: existingUser.rows[0].creator_id, 
+            userId: existingUser.rows[0].userId, 
             email: existingUser.rows[0].email 
         },
         process.env.TOKEN_KEY,
@@ -220,16 +241,38 @@ const login = async(email, password) => {
     }
   
     return({
-        userId: existingUser.rows[0].creator_id, 
+        userId: existingUser.rows[0].userId, 
         email: existingUser.rows[0].email,
         token: token,
         image: existingUser.rows[0].image
     });
 }
 
+const forgotPassword = async (password, userId) => {
+    let hashedPassword
+    try {
+        hashedPassword = await bcrypt.hash(password, 12)
+    } catch(err) {
+        throw new HttpError(
+            'Password invalid, please try again',
+            500
+        )
+    }
+
+    let updatePassword
+    try {
+        updatePassword = await forgotPasswordQuery(hashedPassword, userId)
+    } catch(err) {
+        throw new HttpError('Update password failed, please try again', 404)
+    }
+    
+    return 'Update password sucessfully'
+}
 
 exports.getUsers = getUsers
 exports.getSingleUser = getSingleUser
+exports.getSingleUserByEmail = getSingleUserByEmail
+exports.forgotPassword = forgotPassword
 exports.updateUser = updateUser
 exports.deleteUserById = deleteUserById
 exports.signup = signup
