@@ -1,8 +1,9 @@
-const { getUserByEmail, createCustomerQuery, updateCustomerQuery, getCardsAndInfoByUserIdQuery, deleteUserQuery, allCreatorsQuery, loginQuery, forgotPasswordQuery } = require('../models/creator')
+const { getUserByEmail, createCustomerQuery, updateCustomerQuery, getCardsAndInfoByUserIdQuery, deleteUserQuery, allCreatorsQuery, forgotPasswordQuery} = require('../models/creator')
 const { deleteS3 } = require('../middleware/s3Service')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const HttpError = require('../models/http-error')
+const sendEmail = require('../middleware/send-email')
 require('dotenv').config()
 
 const checkValidPassword = async(password, existingUser) => {
@@ -100,9 +101,8 @@ const updateUser = async(userId, firstName, lastName, imagePath, phone, countryI
         }
     }
 
-    let createdUser
     try {
-        createdUser = await updateCustomerQuery(x, linkedin, instagram, github, website,
+        await updateCustomerQuery(x, linkedin, instagram, github, website,
             firstName, lastName, countryId, languageId, userImage, aboutMe, phone, userId)
     } catch(err) {
         throw new HttpError('Something went wrong, could not update user', 500)
@@ -248,31 +248,98 @@ const login = async(email, password) => {
     });
 }
 
-const forgotPassword = async (password, userId) => {
+const forgotPassword = async (email) => {
+    let currentUser
+    try {
+        currentUser = await getSingleUserByEmail(email)
+    } catch(err) {
+        throw new HttpError(
+            'User not found, please try again',
+            500
+        )
+    }
+
+    let token
+    try {
+        token = jwt.sign({ userId: currentUser.userId, email: currentUser.email },
+            process.env.TOKEN_KEY,
+            { expiresIn: '10m' }
+        )
+    } catch (err) {
+        throw new HttpError(
+            'Generating user failed, please try again later.',
+            500
+        )
+    }
+    
+    try {
+        return await sendEmail(email, token)
+    } catch (err) {
+        throw new HttpError(
+            'Signing up failed, please try again later.',
+            500
+        )
+    }
+}
+
+const resetPassword = async (token, password) => {
+    let decodedToken
+    try {
+        // Verify the token sent by the user
+        decodedToken = jwt.verify(
+            token,
+            process.env.TOKEN_KEY
+        );
+    } catch (err) {
+        throw new HttpError(
+            'Please check your credentials and try again.',
+            500
+        );
+    }
+
+    if (!decodedToken) {
+        throw new HttpError(
+            'Invalid token.',
+            500
+        );
+    }
+
+    let user
+    try {
+        user = await getSingleUserByEmail(decodedToken.email)
+    } catch (err) {
+        throw new HttpError(
+            'Fetching users failed, please try again later.'
+        )
+    }
+
     let hashedPassword
     try {
         hashedPassword = await bcrypt.hash(password, 12)
-    } catch(err) {
+    } catch (err) {
         throw new HttpError(
             'Password invalid, please try again',
             500
         )
     }
 
-    let updatePassword
     try {
-        updatePassword = await forgotPasswordQuery(hashedPassword, userId)
-    } catch(err) {
-        throw new HttpError('Update password failed, please try again', 404)
+        await forgotPasswordQuery(hashedPassword, decodedToken.userId)
+    } catch (err) {
+        throw new HttpError(
+            'Updating password failed, please try again',
+            500
+        )
     }
-    
-    return 'Update password sucessfully'
+    return 'Reset password successfully'
+
 }
 
 exports.getUsers = getUsers
 exports.getSingleUser = getSingleUser
 exports.getSingleUserByEmail = getSingleUserByEmail
 exports.forgotPassword = forgotPassword
+exports.resetPassword = resetPassword
 exports.updateUser = updateUser
 exports.deleteUserById = deleteUserById
 exports.signup = signup

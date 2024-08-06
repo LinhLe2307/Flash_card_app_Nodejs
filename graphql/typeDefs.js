@@ -69,8 +69,11 @@ const typeDefs = gql`
     ): String!
     getSingleUserByEmail(email: String!): JSON!
     forgotPassword(
+      email: String!
+    ): JSON!
+    resetPassword(
+      token: String!
       password: String!
-      userId: ID!
     ): String!
   }
 

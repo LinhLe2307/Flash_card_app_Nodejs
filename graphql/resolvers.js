@@ -1,7 +1,7 @@
 const axios = require('axios')
 const HttpError = require('../models/http-error');
 const { uploadS3 } = require('../middleware/s3Service')
-const { signup, getUsers, getSingleUser, login, updateUser, deleteUserById, getSingleUserByEmail, forgotPassword } = require('../controllers/creators-controllers');
+const { signup, getUsers, getSingleUser, login, updateUser, deleteUserById, getSingleUserByEmail, forgotPassword, resetPassword } = require('../controllers/creators-controllers');
 const { createCard, getCardById, deleteCardById, updateCard } = require('../controllers/cards-controllers');
 const checkEmailValidation = require('../utils/checkEmailValidation');
 const { getAllCountriesAndLanguagesQuery } = require('../models/country');
@@ -89,7 +89,10 @@ const resolvers = {
         return getSingleUserByEmail(args.email)
       },
       forgotPassword: async(root, args) => {
-        return forgotPassword(args.password, args.userId)
+        return forgotPassword(args.email)
+      },
+      resetPassword: async (root, args) => {
+        return resetPassword(args.token, args.password)
       }
     }
   };
