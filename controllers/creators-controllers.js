@@ -283,11 +283,12 @@ const forgotPassword = async (email) => {
 }
 
 const resetPassword = async (token, password) => {
+    const convertedToken = token.replaceAll('@', '.')
     let decodedToken
     try {
         // Verify the token sent by the user
         decodedToken = jwt.verify(
-            token,
+            convertedToken,
             process.env.TOKEN_KEY
         );
     } catch (err) {
