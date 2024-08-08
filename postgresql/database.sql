@@ -1,20 +1,6 @@
---
--- NOTE:
---
--- File paths need to be edited. Search for $$PATH$$ and
--- replace it with the path to the directory containing
--- the extracted data files.
---
---
--- postgresQL database dump
---
-
--- Dumped from database version 11.3
--- Dumped by pg_dump version 11.2
-
 DROP DATABASE flash_card_app_nodejs;
 --
--- Name: dvdrental; Type: DATABASE; Schema: -; Owner: postgres
+-- Name: pernflashcard; Type: DATABASE; Schema: -; Owner: postgres
 --
 
 CREATE DATABASE flash_card_app_nodejs WITH TEMPLATE = template0 ENCODING = 'UTF8';
