@@ -31,18 +31,12 @@ const typeDefs = gql`
     signUpAuth(
       firstName: String!
       lastName: String!
-      image: Upload!
       aboutMe: String
       country: String!
       password: String!
       email: String!
       phone: String
       language: String
-      x: String
-      linkedIn: String
-      instagram: String
-      github: String
-      website: String
     ): LoginUser
     updateUser(
       userId: ID!
@@ -54,6 +48,9 @@ const typeDefs = gql`
       email: String!
       phone: String
       language: String
+    ): User
+    updateSocialMedia(
+      userId: ID!
       x: String
       linkedIn: String
       instagram: String

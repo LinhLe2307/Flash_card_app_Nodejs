@@ -1,7 +1,7 @@
 const axios = require('axios')
 const HttpError = require('../models/http-error');
 const { uploadS3 } = require('../middleware/s3Service')
-const { signup, getUsers, getSingleUser, login, updateUser, deleteUserById, getSingleUserByEmail, forgotPassword, resetPassword } = require('../controllers/creators-controllers');
+const { signup, getUsers, getSingleUser, login, updateUser, deleteUserById, getSingleUserByEmail, forgotPassword, resetPassword, updateSocialMedia } = require('../controllers/creators-controllers');
 const { createCard, getCardById, deleteCardById, updateCard } = require('../controllers/cards-controllers');
 const checkEmailValidation = require('../utils/checkEmailValidation');
 const { getAllCountriesAndLanguagesQuery } = require('../models/country');
@@ -46,18 +46,26 @@ const resolvers = {
         return login( args.email, args.password)
       },
   
-      signUpAuth: async(root, { firstName, lastName, image, 
-        phone, country, language, email, password, aboutMe, x,
-        linkedIn, instagram, github, website }) => {
+      signUpAuth: async(root, { firstName, lastName,  
+        phone, country, language, email, password, aboutMe }) => {
         const isValidEmail = checkEmailValidation(email)
         if (isValidEmail) {
-          const result = await uploadS3(image)
-          return signup(firstName, lastName, result.Location, phone, country, language, email, password, aboutMe, x,
-          linkedIn, instagram, github, website)
+          const image = 'https://t4.ftcdn.net/jpg/03/59/58/91/360_F_359589186_JDLl8dIWoBNf1iqEkHxhUeeOulx0wOC5.jpg'
+          return signup(firstName, lastName, image, phone, country, language, email, password, aboutMe)
         } else {
           throw new HttpError("Email not in proper format")
         }
       },
+      // signUpAuth: async(root, { firstName, lastName,  
+      //   phone, country, language, email, password, aboutMe }) => {
+      //   const isValidEmail = checkEmailValidation(email)
+      //   if (isValidEmail) {
+      //     const result = await uploadS3(image)
+      //     return signup(firstName, lastName, result.Location, phone, country, language, email, password, aboutMe)
+      //   } else {
+      //     throw new HttpError("Email not in proper format")
+      //   }
+      // },
             
       updateUser: async(root, {userId, firstName, lastName, image, phone, country, language, aboutMe, x, linkedIn,
         instagram, github, website}) => {
@@ -69,10 +77,14 @@ const resolvers = {
             imageUrl = image.url
           }
           return updateUser(
-            userId, firstName, lastName, imageUrl, phone, country, language, aboutMe, x, linkedIn,
-            instagram, github, website
+            userId, firstName, lastName, imageUrl, phone, country, language, aboutMe
           )
       },
+
+      updateSocialMedia: async(root, {userId, x, linkedin, instagram, github, website}) => {
+        return await updateSocialMedia(userId, x, linkedin, instagram, github, website)
+      },
+
       createCard: async(root, args) => {
         return await createCard(args.input)
       },

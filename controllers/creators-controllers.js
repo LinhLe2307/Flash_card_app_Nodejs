@@ -1,4 +1,4 @@
-const { getUserByEmail, createCustomerQuery, updateCustomerQuery, getCardsAndInfoByUserIdQuery, deleteUserQuery, allCreatorsQuery, forgotPasswordQuery} = require('../models/creator')
+const { getUserByEmail, createCustomerQuery, updateCustomerQuery, updateSocialMediaQuery, getCardsAndInfoByUserIdQuery, deleteUserQuery, allCreatorsQuery, forgotPasswordQuery} = require('../models/creator')
 const { deleteS3 } = require('../middleware/s3Service')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
@@ -71,7 +71,7 @@ const getSingleUserByEmail = async(email) => {
     return user.rows[0]
 } 
 
-const updateUser = async(userId, firstName, lastName, imagePath, phone, countryId, languageId, aboutMe, x, linkedin, instagram, github, website) => {
+const updateUser = async(userId, firstName, lastName, phone, countryId, languageId, aboutMe) => {
   let user
     try {
         user = await getCardsAndInfoByUserIdQuery(userId)
@@ -86,24 +86,49 @@ const updateUser = async(userId, firstName, lastName, imagePath, phone, countryI
         
     }
 
-    if (!user.rows[0].image) {
-        throw new HttpError('Could not find image path for provided id.', 404)
+    // if (!user.rows[0].image) {
+    //     throw new HttpError('Could not find image path for provided id.', 404)
+    // }
+
+    // let userImage = user.rows[0].image;
+    // if (imagePath !== userImage) {
+    //     // Delete existing image, then upload a new one
+    //     try {
+    //         await deleteS3(user.image);
+    //         userImage = await imagePath
+    //     } catch(err) {
+    //         throw new HttpError('Something went wrong, could not update image', 500)
+    //     }
+    // }
+
+    try {
+        await updateCustomerQuery(firstName, lastName, countryId, languageId, aboutMe, phone, userId)
+    } catch(err) {
+        throw new HttpError('Something went wrong, could not update user', 500)
     }
 
-    let userImage = user.rows[0].image;
-    if (imagePath !== userImage) {
-        // Delete existing image, then upload a new one
-        try {
-            await deleteS3(user.image);
-            userImage = await imagePath
-        } catch(err) {
-            throw new HttpError('Something went wrong, could not update image', 500)
-        }
+    let singleUser = await getSingleUser(userId)
+
+    return singleUser
+}
+
+const updateSocialMedia = async(userId, x, linkedin, instagram, github, website) => {
+    let user
+    try {
+        user = await getCardsAndInfoByUserIdQuery(userId)
+    } catch(err) {
+        throw new HttpError(
+          'Fetching users failed, please try again later'
+        )
+    }
+
+    if (!user.rows.length) {
+        throw new HttpError('Could not find user for provided id.', 404)
+        
     }
 
     try {
-        await updateCustomerQuery(x, linkedin, instagram, github, website,
-            firstName, lastName, countryId, languageId, userImage, aboutMe, phone, userId)
+        await updateSocialMediaQuery(userId, x, linkedin, instagram, github, website)
     } catch(err) {
         throw new HttpError('Something went wrong, could not update user', 500)
     }
@@ -150,8 +175,7 @@ const deleteUserById = async(userId) => {
 
 const signup = async (
     firstName, lastName, image, 
-    phone, countryId, languageId, email, password, aboutMe, x,
-    linkedin, instagram, github, website
+    phone, countryId, languageId, email, password, aboutMe
 ) => {
     let existingUser
     try {
@@ -176,9 +200,10 @@ const signup = async (
 
     let createdUser
     try {
-        createdUser = await createCustomerQuery(x, linkedin, instagram, github, website,
+        createdUser = await createCustomerQuery(
             firstName, lastName, email, countryId, languageId, hashedPassword, image, aboutMe, phone)
     } catch(err) {
+        console.log(err)
         throw new HttpError('Creating user failed, please try again')
     }
     
@@ -305,9 +330,8 @@ const resetPassword = async (token, password) => {
         );
     }
 
-    let user
     try {
-        user = await getSingleUserByEmail(decodedToken.email)
+        await getSingleUserByEmail(decodedToken.email)
     } catch (err) {
         throw new HttpError(
             'Fetching users failed, please try again later.'
@@ -341,6 +365,7 @@ exports.getSingleUser = getSingleUser
 exports.getSingleUserByEmail = getSingleUserByEmail
 exports.forgotPassword = forgotPassword
 exports.resetPassword = resetPassword
+exports.updateSocialMedia = updateSocialMedia
 exports.updateUser = updateUser
 exports.deleteUserById = deleteUserById
 exports.signup = signup
