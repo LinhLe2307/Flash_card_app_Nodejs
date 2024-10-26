@@ -1,5 +1,5 @@
-const { getUserByEmail, createCustomerQuery, updateCustomerQuery, updateSocialMediaQuery, getCardsAndInfoByUserIdQuery, deleteUserQuery, allCreatorsQuery, forgotPasswordQuery} = require('../models/creator')
-const { deleteS3 } = require('../middleware/s3Service')
+const { getUserByEmail, createCustomerQuery, updateCustomerQuery, updateSocialMediaQuery, getCardsAndInfoByUserIdQuery, deleteUserQuery, allCreatorsQuery, forgotPasswordQuery, submitImageQuery} = require('../models/creator')
+const { deleteS3, uploadS3 } = require('../middleware/s3Service')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const HttpError = require('../models/http-error')
@@ -86,21 +86,6 @@ const updateUser = async(userId, firstName, lastName, phone, countryId, language
         
     }
 
-    // if (!user.rows[0].image) {
-    //     throw new HttpError('Could not find image path for provided id.', 404)
-    // }
-
-    // let userImage = user.rows[0].image;
-    // if (imagePath !== userImage) {
-    //     // Delete existing image, then upload a new one
-    //     try {
-    //         await deleteS3(user.image);
-    //         userImage = await imagePath
-    //     } catch(err) {
-    //         throw new HttpError('Something went wrong, could not update image', 500)
-    //     }
-    // }
-
     try {
         await updateCustomerQuery(firstName, lastName, countryId, languageId, aboutMe, phone, userId)
     } catch(err) {
@@ -109,6 +94,48 @@ const updateUser = async(userId, firstName, lastName, phone, countryId, language
 
     let singleUser = await getSingleUser(userId)
 
+    return singleUser
+}
+
+const submitImage = async(userId, image) => {
+    let user
+    try {
+        user = await getCardsAndInfoByUserIdQuery(userId)
+    } catch(err) {
+        throw new HttpError(
+          'Fetching users failed, please try again later'
+        )
+    }
+
+    if (!user.rows.length) {
+        throw new HttpError('Could not find user for provided id.', 404)
+    }
+
+    if (!user.rows[0].image) {
+        throw new HttpError('Could not find image path for provided id.', 404)
+    }
+
+    const result = await uploadS3(image)
+    const imagePath = result.Location
+
+    let userImage = user.rows[0].image;
+    if (imagePath !== userImage) {
+        // Delete existing image, then upload a new one
+        try {
+            await deleteS3(userImage);
+            userImage = imagePath
+        } catch(err) {
+            throw new HttpError('Something went wrong, could not delete image', 500)
+        }
+    }
+
+    try {
+        await submitImageQuery(userId, imagePath)
+    } catch(err) {
+        throw new HttpError('Something went wrong, could not upload image', 500)
+    }
+
+    let singleUser = await getSingleUser(userId)
     return singleUser
 }
 
@@ -366,6 +393,7 @@ exports.getSingleUserByEmail = getSingleUserByEmail
 exports.forgotPassword = forgotPassword
 exports.resetPassword = resetPassword
 exports.updateSocialMedia = updateSocialMedia
+exports.submitImage = submitImage
 exports.updateUser = updateUser
 exports.deleteUserById = deleteUserById
 exports.signup = signup

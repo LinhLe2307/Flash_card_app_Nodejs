@@ -147,11 +147,26 @@ const getUserByEmail = async (email) => {
     `, [email])
 }
 
-const createCustomerQuery = async(x, linkedin, instagram, github, website,
+const createCustomerQuery = async(
     firstName, lastName, email, countryId, languageId, password, image, aboutMe, phone
 ) => {
     let numberCountryId = +countryId
     let numberLanguageId = +languageId
+    return await client.query(`
+        WITH insert_media AS (
+            INSERT INTO media (x, linkedin, instagram, github, website)
+			VALUES('', '', '', '', '')
+			RETURNING media_id
+        )
+        INSERT INTO creator(first_name, last_name, email, country_id, language_id, media_id, password, image, about_me, phone) 
+            SELECT $1, $2, $3, $4, $5, i.media_id, $6, $7, $8, $9
+            FROM insert_media i
+	    RETURNING *;`, [firstName, lastName, email, numberCountryId, numberLanguageId, password, image, aboutMe, phone])
+}
+
+const createMediaQuery = async(x, linkedin, instagram, github, website,
+    aboutMe, userId
+) => {
     return await client.query(`
         WITH insert_media AS (
             INSERT INTO media (x, linkedin, instagram, github, website)
@@ -161,16 +176,29 @@ const createCustomerQuery = async(x, linkedin, instagram, github, website,
 			RETURNING media_id
         )
 
-        INSERT INTO creator(first_name, last_name, email, country_id, language_id, media_id, password, image, about_me, phone) 
-            SELECT $6, $7, $8, $9, $10, i.media_id, $11, $12, $13, $14
-            FROM insert_media i
-	    RETURNING *;`, [x, linkedin, instagram, github, website,
-            firstName, lastName, email, numberCountryId, numberLanguageId, password, image, aboutMe, phone])
+        UPDATE creator
+        SET media_id=i.media_id, 
+        about_me=$6
+        WHERE creator_id=$7
+	    RETURNING *;`, [x, linkedin, instagram, github, website, aboutMe, userId])
 }
 
-const updateCustomerQuery = async (x, linkedin, instagram, github, website,
-    firstName, lastName, countryId, languageId, image, aboutMe, phone, userId) => {
-        let query = `
+const updateCustomerQuery = async (firstName, lastName, countryId, languageId, aboutMe, phone, userId) => {
+    let query = `
+        UPDATE creator
+        SET first_name='${firstName}',
+            last_name='${lastName}',
+            country_id=${countryId},
+            language_id=${languageId},
+            about_me='${aboutMe}',
+            phone='${phone}'
+        WHERE creator_id=${userId};
+    `
+    return await client.query(query)
+}
+
+const updateSocialMediaQuery = async(userId, x, linkedin, instagram, github, website) => {
+    let query = `
         WITH update_media AS (
             UPDATE media m
             SET x = COALESCE(NULLIF('${x}', ''), m.x), 
@@ -184,15 +212,18 @@ const updateCustomerQuery = async (x, linkedin, instagram, github, website,
         )
         
         UPDATE creator
-        SET first_name='${firstName}',
-            last_name='${lastName}',
-            country_id=${countryId},
-            language_id=${languageId},
-            image='${image}',
-            about_me='${aboutMe}',
-            phone='${phone}',
-            media_id= (SELECT media_id FROM update_media)
+        SET media_id= (SELECT media_id FROM update_media)
         WHERE creator_id=${userId};
+    `
+    return await client.query(query)
+}
+
+const submitImageQuery = async(userId, image) => {
+    const query = `
+        UPDATE creator
+        SET image='${image}'
+        WHERE creator_id=${userId}
+        RETURNING *;
     `
     return await client.query(query)
 }
@@ -217,7 +248,10 @@ const forgotPasswordQuery = async(password, userId) => {
 
 exports.allCreatorsQuery = allCreatorsQuery
 exports.createCustomerQuery = createCustomerQuery
+exports.createMediaQuery = createMediaQuery
 exports.updateCustomerQuery = updateCustomerQuery
+exports.submitImageQuery = submitImageQuery
+exports.updateSocialMediaQuery = updateSocialMediaQuery
 exports.forgotPasswordQuery = forgotPasswordQuery
 exports.getUserByEmail = getUserByEmail
 exports.getCardsAndInfoByUserIdQuery = getCardsAndInfoByUserIdQuery

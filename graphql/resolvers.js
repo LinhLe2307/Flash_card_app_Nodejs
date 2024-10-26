@@ -1,7 +1,7 @@
 const axios = require('axios')
 const HttpError = require('../models/http-error');
 const { uploadS3 } = require('../middleware/s3Service')
-const { signup, getUsers, getSingleUser, login, updateUser, deleteUserById, getSingleUserByEmail, forgotPassword, resetPassword, updateSocialMedia } = require('../controllers/creators-controllers');
+const { signup, getUsers, getSingleUser, login, updateUser, deleteUserById, getSingleUserByEmail, forgotPassword, resetPassword, submitImage, updateSocialMedia } = require('../controllers/creators-controllers');
 const { createCard, getCardById, deleteCardById, updateCard } = require('../controllers/cards-controllers');
 const checkEmailValidation = require('../utils/checkEmailValidation');
 const { getAllCountriesAndLanguagesQuery } = require('../models/country');
@@ -43,7 +43,7 @@ const resolvers = {
     },
     Mutation: {
       loginAuth: async(root, args) => {
-        return login( args.email, args.password)
+        return await login( args.email, args.password)
       },
   
       signUpAuth: async(root, { firstName, lastName,  
@@ -56,28 +56,27 @@ const resolvers = {
           throw new HttpError("Email not in proper format")
         }
       },
-      // signUpAuth: async(root, { firstName, lastName,  
-      //   phone, country, language, email, password, aboutMe }) => {
-      //   const isValidEmail = checkEmailValidation(email)
-      //   if (isValidEmail) {
-      //     const result = await uploadS3(image)
-      //     return signup(firstName, lastName, result.Location, phone, country, language, email, password, aboutMe)
-      //   } else {
-      //     throw new HttpError("Email not in proper format")
-      //   }
-      // },
-            
-      updateUser: async(root, {userId, firstName, lastName, image, phone, country, language, aboutMe, x, linkedIn,
-        instagram, github, website}) => {
-          let imageUrl
-          if (image.file) {
-            const result = await uploadS3(image.file)
-            imageUrl = result.Location
-          } else {
-            imageUrl = image.url
-          }
-          return updateUser(
-            userId, firstName, lastName, imageUrl, phone, country, language, aboutMe
+
+      submitImage: async(root, { userId, image }) => {
+        // let imageUrl
+        //   if (image.file) {
+        //     const result = await uploadS3(image.file)
+        //     imageUrl = result.Location
+        //   } else {
+        //     imageUrl = image.url
+        //   }
+        return await submitImage(userId, image.file)
+      },
+      updateUser: async(root, {userId, firstName, lastName, phone, country, language, aboutMe}) => {
+          // let imageUrl
+          // if (image.file) {
+          //   const result = await uploadS3(image.file)
+          //   imageUrl = result.Location
+          // } else {
+          //   imageUrl = image.url
+          // }
+          return await updateUser(
+            userId, firstName, lastName, phone, country, language, aboutMe
           )
       },
 
@@ -92,19 +91,19 @@ const resolvers = {
         return await updateCard(args.input)
       },      
       deleteUser: async(root, args) => {
-        return deleteUserById(args.userId)
+        return await deleteUserById(args.userId)
       },
       deleteCard: async(root, args) => {
-        return deleteCardById(args.cardId, args.userId)
+        return await deleteCardById(args.cardId, args.userId)
       },
       getSingleUserByEmail: async(root, args) => {
-        return getSingleUserByEmail(args.email)
+        return await getSingleUserByEmail(args.email)
       },
       forgotPassword: async(root, args) => {
-        return forgotPassword(args.email)
+        return await forgotPassword(args.email)
       },
       resetPassword: async (root, args) => {
-        return resetPassword(args.token, args.password)
+        return await resetPassword(args.token, args.password)
       }
     }
   };

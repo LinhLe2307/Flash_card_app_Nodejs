@@ -42,7 +42,6 @@ const typeDefs = gql`
       userId: ID!
       firstName: String!
       lastName: String!
-      image: ImageInput!
       aboutMe: String
       country: String!
       email: String!
@@ -60,6 +59,10 @@ const typeDefs = gql`
     deleteUser(userId: ID!): String!
     createCard(input: JSON!): JSON!
     updateCard(input: JSON!): JSON!
+    submitImage(
+      userId: ID!
+      image: ImageInput!
+    ): JSON!
     deleteCard(
       cardId: ID!
       userId: ID!
