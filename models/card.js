@@ -23,16 +23,18 @@ const createSubcardQuery = async(rest) => {
 
 const updateCardQuery = async(title, description, tagIds, existingSubcards, rest, cardId) => {
     const updateQueries = [];
+    const updateSubcard = [];
     Object.entries(rest).forEach( ([key, value]) => {
         if (existingSubcards.find(sub => +sub === +key)) {
-            updateQueries.push(`(${key}, '${value.term}', '${value.definition}', '${value.imageUrl ?? ''}')`)
+            updateQueries.push(`(${key}, '${value.term}', '${value.definition}', '${value.imageUrl ?? ''}', '${cardId}')`)
+            updateSubcard.push(`${key}`)
         } else {
-            updateQueries.push(`(nextval('subcard_subcard_id_seq'), '${value.term}', '${value.definition}', '${value.imageUrl ?? ''}')`)
+            updateQueries.push(`(nextval('subcard_subcard_id_seq'), '${value.term}', '${value.definition}', '${value.imageUrl ?? ''}', '${cardId}')`)
         }
     });
     let query =`
         WITH update_subcard AS (
-            INSERT INTO subcard (subcard_id, term, definition, subcard_image)
+            INSERT INTO subcard (subcard_id, term, definition, subcard_image, flashcard_id)
             VALUES 
             ${updateQueries.join(', ')}
             ON CONFLICT (subcard_id) DO UPDATE
@@ -48,6 +50,10 @@ const updateCardQuery = async(title, description, tagIds, existingSubcards, rest
                 SET flashcard_id = EXCLUDED.flashcard_id,
                     tag_id = EXCLUDED.tag_id
             RETURNING flashcard_id, tag_id
+        ), delete_subcard AS (
+			DELETE FROM subcard
+			WHERE flashcard_id = ${cardId}
+			  AND subcard_id NOT IN (SELECT unnest(ARRAY[${updateSubcard}]::smallint[]))
         ), delete_flashcard_tag AS (
 			DELETE FROM flashcard_tag
 			WHERE flashcard_id = ${cardId}
@@ -82,6 +88,13 @@ const createCardQuery = async(tagIds, subcardIds, title, description, userId) =>
             FROM insert_flashcard f
             RETURNING flashcard_id, tag_id
         ), 
+            update_subcard AS (
+                UPDATE subcard s
+                SET flashcard_id = f.flashcard_id
+                FROM insert_flashcard f
+                WHERE s.subcard_id = ANY(${arrayLiteral})
+                RETURNING s.flashcard_id
+        ),
 			update_creator AS (
                 UPDATE creator c
                 SET flashcard_id = array_append(
