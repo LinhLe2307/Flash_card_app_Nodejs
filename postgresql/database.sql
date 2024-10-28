@@ -208,6 +208,7 @@ CREATE TABLE IF NOT EXISTS public.subcard (
     term text NOT NULL,
     definition text NOT NULL,
     subcard_image character varying(255),
+    flashcard_id smallint NULL, 
     last_update timestamp without time zone DEFAULT now() NOT NULL
 );
 
@@ -575,6 +576,9 @@ ALTER TABLE ONLY public.creator
 -- Add foreign key constraint for country_id in the city table
 ALTER TABLE ONLY public.city
     ADD CONSTRAINT fk_city FOREIGN KEY (country_id) REFERENCES public.country(country_id);
+
+ALTER TABLE ONLY public.subcard
+    ADD CONSTRAINT subcard_flashcard_id_fkey FOREIGN KEY (flashcard_id) REFERENCES public.flashcard(flashcard_id);
 
 -- Add unique constraint for flashcard_id in the flashcard table
 ALTER TABLE ONLY public.flashcard 
